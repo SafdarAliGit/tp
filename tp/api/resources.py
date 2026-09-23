@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 
-from tp.access import get_doctype_permissions, require_page_access
+from tp.access import get_doctype_permissions, has_page_access
 from tp.api.utils import count, like, paging, parse_json
 from tp.config.resources import RESOURCES
 
@@ -12,7 +12,8 @@ def _resource(key: str) -> dict:
 	resource = RESOURCES.get(key)
 	if not resource:
 		frappe.throw(_("Unknown resource {0}").format(key), frappe.DoesNotExistError)
-	require_page_access(resource["page"])
+	if not any(has_page_access(page) for page in (resource["page"], *resource.get("pages", ()))):
+		frappe.throw(_("You do not have access to this page."), frappe.PermissionError)
 	return resource
 
 
@@ -33,6 +34,31 @@ FORM_FIELDTYPES = {
 	"Long Text": "Text",
 	"Text Editor": "Text",
 }
+
+
+def _default(df):
+	"""A DocField default as the form expects it (meta stores Check defaults as "0" / "1")."""
+	return frappe.utils.cint(df.default) if df.fieldtype == "Check" else df.default
+
+
+def form_fields(resource: dict) -> list[dict]:
+	"""The configured form fields, completed from the DocType: Select options and defaults
+	missing from the config, and the user's default for `user_default` Link fields."""
+	meta = frappe.get_meta(resource["doctype"])
+	fields = []
+	for field in resource["form_fields"]:
+		field = dict(field)
+		df = meta.get_field(field["fieldname"])
+		if df and field["fieldtype"] == "Select" and "options" not in field:
+			field["options"] = df.options or ""
+		if df and "default" not in field and df.default and not str(df.default).startswith(":"):
+			field["default"] = _default(df)
+		if field.pop("user_default", None) and field.get("options"):
+			default = frappe.defaults.get_user_default(field["options"])
+			if default:
+				field["default"] = default
+		fields.append(field)
+	return fields
 
 
 def extra_fields(resource: dict) -> list[dict]:
@@ -62,7 +88,7 @@ def extra_fields(resource: dict) -> list[dict]:
 		if df.fieldtype in ("Link", "Select") and df.options:
 			field["options"] = df.options
 		if df.default and not str(df.default).startswith(":"):
-			field["default"] = df.default
+			field["default"] = _default(df)
 		for key in ("reqd", "set_only_once", "description"):
 			if df.get(key):
 				field[key] = _(df.description) if key == "description" else 1
@@ -71,11 +97,12 @@ def extra_fields(resource: dict) -> list[dict]:
 
 
 def _writable_fields(resource: dict) -> dict[str, dict]:
-	return {f["fieldname"]: f for f in (*resource["form_fields"], *extra_fields(resource))}
+	return {f["fieldname"]: f for f in (*form_fields(resource), *extra_fields(resource))}
 
 
 def _list_fieldnames(resource: dict) -> list[str]:
 	fields = {"name", "modified"} | {f["fieldname"] for f in resource["list_fields"]}
+	fields |= {f["sub"] for f in resource["list_fields"] if f.get("sub")}
 	return sorted(fields)
 
 
@@ -119,7 +146,7 @@ def get_fields(resource: str) -> dict:
 	other editable fields. Required fields are locked: they must always stay in the form."""
 	config = _resource(resource)
 	frappe.has_permission(config["doctype"], "read", throw=True)
-	standard = [{**f, "standard": 1} for f in config["form_fields"]]
+	standard = [{**f, "standard": 1} for f in form_fields(config)]
 	fields = [*standard, *extra_fields(config)]
 	for field in fields:
 		if field.get("reqd") and field["fieldtype"] != "Check":

@@ -6,12 +6,15 @@ import frappe
 from tp.access import require_page_access
 
 
-def page_api(page: str):
+def page_api(page: str, methods=("GET", "POST")):
 	"""Whitelist a method and require access to a portal page before running it.
 
 	Usage:
 	        @page_api("contracts")
 	        def get_list(...): ...
+
+	        @page_api("contracts", methods=["POST"])
+	        def cancel(...): ...
 	"""
 
 	def decorator(fn):
@@ -20,7 +23,7 @@ def page_api(page: str):
 			require_page_access(page)
 			return fn(*args, **kwargs)
 
-		return frappe.whitelist(methods=["GET", "POST"])(wrapper)
+		return frappe.whitelist(methods=list(methods))(wrapper)
 
 	return decorator
 

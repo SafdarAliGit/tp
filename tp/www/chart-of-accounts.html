@@ -1,0 +1,59 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page coa">
+	<header class="page-header">
+		<div>
+			<h1 class="page-title">Chart of Accounts</h1>
+			<p class="page-sub" data-slot="count">&nbsp;</p>
+		</div>
+		<div class="page-actions">
+			<label class="coa-company">
+				<span class="sr-only">Company</span>
+				<select class="select" data-slot="company" aria-label="Company"></select>
+			</label>
+			<button class="btn btn--secondary" type="button" data-action="refresh" aria-label="Refresh" title="Refresh (R)">{{ icon("refresh") }}</button>
+			<button class="btn btn--primary" type="button" data-action="new" hidden>{{ icon("plus") }} <span class="hide-sm">New Account</span></button>
+		</div>
+	</header>
+
+	<div class="coa-kpis" data-slot="kpis" role="group" aria-label="Filter by root type"></div>
+
+	<div class="card card--flush">
+		<div class="toolbar">
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search name, number or type…  ( / )" data-slot="search" aria-label="Search accounts">
+			</label>
+			<div class="toolbar__filters">
+				<label class="date-range" title="Balances up to and including this date">
+					{{ icon("calendar") }}
+					<span class="coa-asof">As on</span>
+					<input type="date" class="input input--bare" data-slot="to-date" aria-label="Balances as on">
+				</label>
+				<label class="check coa-toggle-opt"><input type="checkbox" data-slot="hide-zero"> Hide zero balances</label>
+				<label class="check coa-toggle-opt"><input type="checkbox" data-slot="show-disabled"> Show disabled</label>
+				<span class="toolbar__sep" aria-hidden="true"></span>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="expand" title="Expand all">{{ icon("chevrons-up-down") }}<span class="hide-sm">Expand</span></button>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="collapse-all" title="Collapse all">{{ icon("chevrons-down-up") }}<span class="hide-sm">Collapse</span></button>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="export" title="Download the visible accounts as CSV">{{ icon("download") }}<span class="hide-sm">Export</span></button>
+			</div>
+		</div>
+		<div data-slot="tree"></div>
+		<div class="coa-footer" data-slot="footer" hidden></div>
+	</div>
+
+	<p class="coa-help">
+		<kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd> move · <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> collapse / expand ·
+		<kbd class="kbd">Enter</kbd> edit · <kbd class="kbd">N</kbd> new child · <kbd class="kbd">Shift F10</kbd> or right-click for more
+	</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountChartOfAccounts } from "@tp/pages/chart-of-accounts.js";
+	mountChartOfAccounts();
+</script>
+{% endblock %}

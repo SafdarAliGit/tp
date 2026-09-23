@@ -6,10 +6,9 @@
  */
 import { api } from "@tp/core/api.js";
 import { $, html, icon, raw, boot, debounce, storage } from "@tp/core/dom.js";
-import { confirm, drawer } from "@tp/core/overlay.js";
 import { toast, showError } from "@tp/core/toast.js";
 import { DataTable } from "@tp/components/data-table.js";
-import { Form } from "@tp/components/form.js";
+import { openResourceForm, deleteRecord } from "@tp/components/resource-form.js";
 import { pickFields } from "@tp/components/field-picker.js";
 
 export function mountResourcePage() {
@@ -43,7 +42,7 @@ export function mountResourcePage() {
 	});
 
 	/* Table */
-	const columns = resource.list_fields.map((f) => ({ key: f.fieldname, label: f.label, type: f.type, width: f.width }));
+	const columns = resource.list_fields.map((f) => ({ key: f.fieldname, label: f.label, type: f.type, width: f.width, sub: f.sub }));
 	const rowActions = (perms.write || perms.delete)
 		? (row) => html`
 			${perms.write ? html`<button class="icon-btn icon-btn--sm icon-btn--primary" type="button" data-edit="${row.name}" aria-label="Edit ${row.name}">${icon("pencil", "i--sm")}</button>` : ""}
@@ -165,101 +164,11 @@ export function mountResourcePage() {
 			showError(err, "Couldn't load form");
 			return;
 		}
-		let values = {};
-		let docPerms = perms;
-		if (name) {
-			try {
-				const result = await api.get("tp.api.resources.get", { resource: resource.key, name });
-				values = result.doc;
-				docPerms = result.permissions;
-			} catch (err) {
-				showError(err, "Couldn't open record");
-				return;
-			}
-		}
-
-		const readOnly = name ? !docPerms.write : !docPerms.create;
-		const panel = drawer({
-			title: name ? values[resource.title_field] || name : `New ${resource.singular}`,
-			subtitle: name && values[resource.title_field] !== name ? name : "",
-		});
-		let dirty = false;
-		const form = new Form(panel.body, fields, {
-			values,
-			isNew: !name,
-			disabled: readOnly,
-			onChange: () => (dirty = true),
-		});
-
-		panel.footer.innerHTML = String(html`
-			${name && docPerms.delete ? html`<button class="btn btn--ghost btn--danger" type="button" data-act="delete">${icon("trash")} Delete</button>` : ""}
-			<span class="spacer"></span>
-			<button class="btn btn--secondary" type="button" data-act="cancel">${readOnly ? "Close" : "Cancel"}</button>
-			${readOnly ? "" : html`<button class="btn btn--primary" type="button" data-act="save">${icon("check")} ${name ? "Save changes" : `Create ${resource.singular}`}</button>`}
-		`);
-
-		const save = async () => {
-			if (!form.validate()) return;
-			const button = $("[data-act='save']", panel.footer);
-			button.classList.add("is-loading");
-			button.disabled = true;
-			try {
-				const payload = { ...form.values(), modified: values.modified };
-				const result = await api.post("tp.api.resources.save", { resource: resource.key, name, data: payload });
-				toast.success(name ? "Changes saved" : `${resource.singular} created`, { text: result.doc.name });
-				dirty = false;
-				panel.close(true);
-				load();
-			} catch (err) {
-				button.classList.remove("is-loading");
-				button.disabled = false;
-				showError(err, "Couldn't save");
-			}
-		};
-
-		panel.footer.addEventListener("click", async (e) => {
-			const act = e.target.closest("[data-act]")?.dataset.act;
-			if (act === "save") save();
-			else if (act === "cancel") {
-				if (!dirty || (await confirm({ title: "Discard changes?", text: "Your unsaved changes will be lost.", confirmLabel: "Discard", danger: true }))) {
-					form.destroy();
-					panel.close(false);
-				}
-			} else if (act === "delete") {
-				if (await remove(name)) panel.close(true);
-			}
-		});
-		panel.body.addEventListener("keydown", (e) => {
-			if (e.key === "Enter" && e.target.matches("input:not([role=combobox])")) {
-				e.preventDefault();
-				save();
-			}
-		});
-		panel.node.addEventListener("keydown", (e) => {
-			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-				e.preventDefault();
-				if (!readOnly) save();
-			}
-		});
+		openResourceForm({ resource, name, fields, permissions: perms, onSaved: load, onDeleted: load });
 	}
 
 	async function remove(name) {
-		const ok = await confirm({
-			title: `Delete ${resource.singular.toLowerCase()}?`,
-			text: `"${name}" will be permanently deleted. This can't be undone.`,
-			confirmLabel: "Delete",
-			danger: true,
-		});
-		if (!ok) return false;
-		try {
-			await api.post("tp.api.resources.delete", { resource: resource.key, name });
-			toast.success(`${resource.singular} deleted`, { text: name });
-			load();
-			return true;
-		} catch (err) {
-			showError(err, "Couldn't delete");
-			return false;
-		}
+		if (await deleteRecord({ resource, name })) load();
 	}
 
 	load();

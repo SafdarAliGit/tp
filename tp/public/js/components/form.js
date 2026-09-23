@@ -1,6 +1,9 @@
 /**
  * Declarative form built from Frappe-like field definitions:
- *   { fieldname, label, fieldtype, options, reqd, default, set_only_once, read_only, full, filters, placeholder }
+ *   { fieldname, label, fieldtype, options, reqd, default, set_only_once, read_only, full, filters, placeholder, depends_on }
+ *
+ * `depends_on: { is_group: 0 }` shows the field only while every listed value matches.
+ * A Link filter value `{ field: "company" }` is read from another field when searching.
  *
  *   const form = new Form(node, fields, { values, isNew, disabled, onChange });
  *   if (form.validate()) save(form.values());
@@ -23,6 +26,34 @@ export class Form {
 		this.render();
 	}
 
+	isVisible(f) {
+		if (!f.depends_on) return true;
+		return Object.entries(f.depends_on).every(([key, expected]) => {
+			const value = this.data[key];
+			return typeof expected === "number" ? Number(value || 0) === expected : (value ?? "") === expected;
+		});
+	}
+
+	refreshVisibility() {
+		for (const f of this.fields) {
+			if (!f.depends_on) continue;
+			const wrap = this.node.querySelector(`[data-field="${f.fieldname}"]`);
+			if (wrap) wrap.hidden = !this.isVisible(f);
+		}
+	}
+
+	linkFilters(f) {
+		if (!f.filters) return undefined;
+		const refs = Object.values(f.filters).some((v) => v && typeof v === "object" && "field" in v);
+		if (!refs) return f.filters;
+		return () =>
+			Object.fromEntries(
+				Object.entries(f.filters)
+					.map(([key, v]) => [key, v && typeof v === "object" && "field" in v ? this.data[v.field] : v])
+					.filter(([, v]) => v !== "" && v !== null && v !== undefined)
+			);
+	}
+
 	isReadOnly(f) {
 		return this.disabled || f.read_only || (f.set_only_once && !this.isNew);
 	}
@@ -31,6 +62,7 @@ export class Form {
 		const grid = el(`<div class="form-grid"></div>`);
 		for (const f of this.fields) grid.append(this.renderField(f));
 		this.node.replaceChildren(grid);
+		this.refreshVisibility();
 	}
 
 	renderField(f) {
@@ -58,7 +90,7 @@ export class Form {
 				value,
 				id,
 				required: f.reqd,
-				filters: f.filters,
+				filters: this.linkFilters(f),
 				placeholder: f.placeholder,
 				onChange: (v) => this.set(f.fieldname, v),
 			});
@@ -111,6 +143,7 @@ export class Form {
 	set(fieldname, value) {
 		this.data[fieldname] = value;
 		this.clearError(fieldname);
+		this.refreshVisibility();
 		this.onChange?.(fieldname, value, this.data);
 	}
 
@@ -143,7 +176,7 @@ export class Form {
 		let first = null;
 		for (const f of this.fields) {
 			const v = this.data[f.fieldname];
-			if (f.reqd && f.fieldtype !== "Check" && (v === "" || v === null || v === undefined)) {
+			if (f.reqd && f.fieldtype !== "Check" && this.isVisible(f) && (v === "" || v === null || v === undefined)) {
 				this.setError(f.fieldname, `${f.label} is required`);
 				first ??= f.fieldname;
 			}

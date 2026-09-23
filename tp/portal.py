@@ -143,6 +143,7 @@ def set_home_page():
 
 def build_resource_context(context, key: str):
 	"""Context for a master-data page declared in tp/config/resources.py."""
+	from tp.api.resources import form_fields
 	from tp.config.resources import RESOURCES
 
 	config = RESOURCES[key]
@@ -157,6 +158,6 @@ def build_resource_context(context, key: str):
 			"title_field": config["title_field"],
 			"tabs": [{"key": t["key"], "label": t["label"]} for t in config.get("tabs", ())],
 			"list_fields": config["list_fields"],
-			"form_fields": config["form_fields"],
+			"form_fields": form_fields(config),
 		},
 	)

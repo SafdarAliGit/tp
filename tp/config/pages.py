@@ -55,6 +55,25 @@ PAGES = (
 		"sequence": 50,
 		"reference_doctype": "Color",
 	},
+	{
+		"page": "chart-of-accounts",
+		"title": "Chart of Accounts",
+		"route": "/chart-of-accounts",
+		"icon": "list-tree",
+		"section": "Accounting",
+		"sequence": 60,
+		"reference_doctype": "Account",
+		"description": "Account tree with balances. Actions follow the user's Account permissions.",
+	},
+	{
+		"page": "accounts",
+		"title": "Accounts",
+		"route": "/accounts",
+		"icon": "landmark",
+		"section": "Accounting",
+		"sequence": 70,
+		"reference_doctype": "Account",
+	},
 )
 
-SECTION_ORDER = ("Overview", "Production", "Masters")
+SECTION_ORDER = ("Overview", "Production", "Accounting", "Masters")

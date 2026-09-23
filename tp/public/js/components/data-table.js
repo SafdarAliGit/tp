@@ -11,6 +11,7 @@ export const cell = {
 	title: (v, row, col) => html`<span class="cell-title">${v}</span>${col.sub ? html`<span class="cell-sub">${row[col.sub] ?? ""}</span>` : ""}`,
 	code: (v) => html`<span class="cell-code">${v}</span>`,
 	badge: (v) => (v ? html`<span class="badge">${v}</span>` : ""),
+	group: (v) => (Number(v) ? html`<span class="badge">Group</span>` : html`<span class="badge badge--neutral">Ledger</span>`),
 	status: (v) => (Number(v) ? html`<span class="pill pill--danger">Disabled</span>` : html`<span class="pill pill--success">Active</span>`),
 	swatch: (v) => html`<span class="swatch" style="background:${/^#[0-9a-f]{3,8}$/i.test(v || "") ? v : "transparent"}"></span>`,
 	date: (v) => (v ? fmt.date(v) : html`<span class="muted">—</span>`),

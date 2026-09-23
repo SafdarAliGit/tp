@@ -1033,6 +1033,25 @@
 	background: var(--danger-soft);
 	color: var(--danger);
 }
+/* Floating action menu (components/popover-menu.js) */
+.popover-menu {
+	position: fixed;
+	right: auto;
+	z-index: 90;
+	min-width: 220px;
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	animation: pop var(--dur) var(--ease);
+}
+.popover-menu .menu__item--danger {
+	color: var(--destructive);
+}
+.popover-menu .menu__item--danger:hover {
+	background: var(--destructive-soft);
+	color: var(--destructive);
+}
+
 .menu__sep {
 	height: 1px;
 	margin: var(--sp-1) 0;
@@ -1170,6 +1189,16 @@
 	height: min(640px, calc(100dvh - 32px));
 	overflow: hidden;
 }
+.modal--form {
+	width: min(480px, 100%);
+}
+.modal__form {
+	padding: 0 var(--sp-6) var(--sp-5);
+}
+.modal__form .form-grid {
+	grid-template-columns: 1fr;
+}
+
 .picker__header {
 	display: flex;
 	align-items: flex-start;
