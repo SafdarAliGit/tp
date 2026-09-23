@@ -1,0 +1,140 @@
+{
+ "creation": "2026-09-23 12:00:00.000000",
+ "modified": "2026-09-23 12:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "module": "Tp",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Page Access",
+ "autoname": "field:page",
+ "naming_rule": "By fieldname",
+ "title_field": "title",
+ "show_title_field_in_link": 1,
+ "track_changes": 1,
+ "search_fields": "title,route",
+ "field_order": [
+  "page_section",
+  "page",
+  "title",
+  "route",
+  "icon",
+  "column_break_1",
+  "section",
+  "sequence",
+  "enabled",
+  "show_in_sidebar",
+  "access_section",
+  "roles",
+  "reference_doctype",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "page_section",
+   "fieldtype": "Section Break",
+   "label": "Page"
+  },
+  {
+   "fieldname": "page",
+   "fieldtype": "Data",
+   "label": "Page Key",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Internal key used by the portal code, e.g. contracts"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Route",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Portal URL, e.g. /contracts"
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon",
+   "description": "Icon name from the portal icon set"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section",
+   "fieldtype": "Data",
+   "label": "Sidebar Group",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "show_in_sidebar",
+   "fieldtype": "Check",
+   "label": "Show in Sidebar",
+   "default": "1"
+  },
+  {
+   "fieldname": "access_section",
+   "fieldtype": "Section Break",
+   "label": "Access"
+  },
+  {
+   "fieldname": "roles",
+   "fieldtype": "Table MultiSelect",
+   "label": "Roles",
+   "options": "Page Access Role",
+   "description": "Users need at least one of these roles. Administrator always has access."
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType",
+   "description": "If set, users also need Frappe/ERPNext read permission on this DocType. Create, edit and delete follow the same permissions."
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "links": [],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "index_web_pages_for_search": 0
+}

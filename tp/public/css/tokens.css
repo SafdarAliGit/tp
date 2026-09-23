@@ -1,0 +1,196 @@
+/* =============================================================================
+   Design tokens — the only place colours, radii, shadows and type sizes are defined.
+   Palette: blue (Visual Studio palette with hues rotated to blue). Components use semantic tokens only.
+   ========================================================================== */
+
+:root {
+	/* Brand ramp */
+	--blue-50: #f4f8fd;
+	--blue-100: #e9f0fb;
+	--blue-200: #d0dff6;
+	--blue-300: #a6c2ec;
+	--blue-400: #7aa2df;
+	--blue-500: #4f7ec4;
+	--blue-600: #2d5591;
+	--blue-700: #234578;
+	--blue-800: #1b365e;
+	--blue-900: #112440;
+	--accent-500: #3871c2;
+	--periwinkle-400: #8a9cff;
+
+	/* Typography */
+	--font-sans: "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+	--font-display: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+	--text-xs: 0.75rem;
+	--text-sm: 0.8125rem;
+	--text-base: 0.875rem;
+	--text-md: 1rem;
+	--text-lg: 1.125rem;
+	--text-xl: 1.375rem;
+	--text-2xl: 1.75rem;
+	--text-3xl: 2.5rem;
+
+	/* Spacing (4px grid) */
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-5: 20px;
+	--sp-6: 24px;
+	--sp-8: 32px;
+	--sp-10: 40px;
+	--sp-12: 48px;
+
+	/* Shape & motion */
+	--radius-sm: 6px;
+	--radius: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--radius-pill: 999px;
+	--ease: cubic-bezier(0.2, 0, 0, 1);
+	--dur-fast: 120ms;
+	--dur: 200ms;
+	--dur-slow: 320ms;
+
+	/* Layout */
+	--sidebar-w: 256px;
+	--sidebar-w-collapsed: 68px;
+	--topbar-h: 60px;
+
+	/* Semantic — light */
+	--bg: #f4f7fb;
+	--bg-glow-1: rgba(107, 166, 255, 0.18);
+	--bg-glow-2: rgba(56, 113, 194, 0.1);
+	--surface: #ffffff;
+	--surface-2: #f9fbfd;
+	--surface-3: #eff3f8;
+	--surface-glass: rgba(255, 255, 255, 0.72);
+	--border: #e2e8f0;
+	--border-strong: #cdd6e3;
+	--text: #1a1c1f;
+	--text-2: #474d57;
+	--text-muted: #6a717b;
+	--text-on-brand: #ffffff;
+
+	--primary: var(--blue-600);
+	--primary-hover: var(--blue-700);
+	--primary-active: var(--blue-800);
+	--primary-soft: var(--blue-100);
+	--primary-soft-text: var(--blue-700);
+	--focus-ring: 0 0 0 3px rgba(79, 126, 196, 0.35);
+	--gradient-brand: linear-gradient(135deg, #6ba6ff 0%, #2f6ac2 55%, #3871c2 100%);
+
+	--success: #0f7b3f;
+	--success-soft: #e3f5ea;
+	--warning: #9a5b00;
+	--warning-soft: #fdf1dc;
+	--danger: #2350c4;
+	--danger-hover: #1c3f9c;
+	--danger-soft: #e4ebfc;
+	/* Delete buttons stay red */
+	--destructive: #c4314b;
+	--destructive-hover: #a4263d;
+	--destructive-soft: #fde7eb;
+	--info: #2b5fd9;
+	--info-soft: #e6edfd;
+
+	--chart-bar: var(--blue-500);
+	--chart-bar-hover: var(--blue-600);
+	--chart-grid: #e8ecf3;
+
+	--shadow-xs: 0 1px 2px rgba(17, 36, 64, 0.06);
+	--shadow-sm: 0 1px 3px rgba(17, 36, 64, 0.08), 0 1px 2px rgba(17, 36, 64, 0.04);
+	--shadow: 0 4px 12px -2px rgba(17, 36, 64, 0.1), 0 2px 4px -2px rgba(17, 36, 64, 0.06);
+	--shadow-lg: 0 16px 40px -8px rgba(17, 36, 64, 0.22), 0 4px 12px -4px rgba(17, 36, 64, 0.1);
+	--shadow-primary: 0 4px 14px -4px rgba(45, 85, 145, 0.55);
+
+	color-scheme: light;
+}
+
+/* Dark theme — follows the OS unless the user picked light, or forced via data-theme="dark" */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--bg: #0f1115;
+		--bg-glow-1: rgba(79, 126, 196, 0.22);
+		--bg-glow-2: rgba(56, 113, 194, 0.1);
+		--surface: #171b20;
+		--surface-2: #1b2027;
+		--surface-3: #22272f;
+		--surface-glass: rgba(23, 27, 32, 0.72);
+		--border: #292f39;
+		--border-strong: #363e4b;
+		--text: #f0f3f8;
+		--text-2: #c2cad6;
+		--text-muted: #929ba8;
+		--primary: #5f8fd6;
+		--primary-hover: #77a1df;
+		--primary-active: #4f7ec4;
+		--primary-soft: rgba(122, 162, 223, 0.16);
+		--primary-soft-text: #b6cef3;
+		--focus-ring: 0 0 0 3px rgba(122, 162, 223, 0.45);
+		--success: #4cc38a;
+		--success-soft: rgba(76, 195, 138, 0.14);
+		--warning: #f0b34a;
+		--warning-soft: rgba(240, 179, 74, 0.14);
+		--danger: #6d9bf2;
+		--danger-hover: #8bb0f5;
+		--danger-soft: rgba(109, 155, 242, 0.14);
+		--destructive: #f26d85;
+		--destructive-hover: #f58ba0;
+		--destructive-soft: rgba(242, 109, 133, 0.14);
+		--info: #7aa2ff;
+		--info-soft: rgba(122, 162, 255, 0.14);
+		--chart-bar: #7aa2df;
+		--chart-bar-hover: #a6c2ec;
+		--chart-grid: #252b33;
+		--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+		--shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.5);
+		--shadow-lg: 0 18px 44px -8px rgba(0, 0, 0, 0.65);
+		--shadow-primary: 0 4px 16px -4px rgba(79, 126, 196, 0.6);
+		color-scheme: dark;
+	}
+}
+
+:root[data-theme="dark"] {
+	--bg: #0f1115;
+	--bg-glow-1: rgba(79, 126, 196, 0.22);
+	--bg-glow-2: rgba(56, 113, 194, 0.1);
+	--surface: #171b20;
+	--surface-2: #1b2027;
+	--surface-3: #22272f;
+	--surface-glass: rgba(23, 27, 32, 0.72);
+	--border: #292f39;
+	--border-strong: #363e4b;
+	--text: #f0f3f8;
+	--text-2: #c2cad6;
+	--text-muted: #929ba8;
+	--primary: #5f8fd6;
+	--primary-hover: #77a1df;
+	--primary-active: #4f7ec4;
+	--primary-soft: rgba(122, 162, 223, 0.16);
+	--primary-soft-text: #b6cef3;
+	--focus-ring: 0 0 0 3px rgba(122, 162, 223, 0.45);
+	--success: #4cc38a;
+	--success-soft: rgba(76, 195, 138, 0.14);
+	--warning: #f0b34a;
+	--warning-soft: rgba(240, 179, 74, 0.14);
+	--danger: #6d9bf2;
+	--danger-hover: #8bb0f5;
+	--danger-soft: rgba(109, 155, 242, 0.14);
+	--destructive: #f26d85;
+	--destructive-hover: #f58ba0;
+	--destructive-soft: rgba(242, 109, 133, 0.14);
+	--info: #7aa2ff;
+	--info-soft: rgba(122, 162, 255, 0.14);
+	--chart-bar: #7aa2df;
+	--chart-bar-hover: #a6c2ec;
+	--chart-grid: #252b33;
+	--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+	--shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.5);
+	--shadow-lg: 0 18px 44px -8px rgba(0, 0, 0, 0.65);
+	--shadow-primary: 0 4px 16px -4px rgba(79, 126, 196, 0.6);
+	color-scheme: dark;
+}

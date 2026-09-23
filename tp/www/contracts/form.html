@@ -1,0 +1,45 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block breadcrumbs %}
+<a class="crumb" href="/contracts">Weaving Contracts</a>
+{{ icon("chevron-right", "crumb__sep") }}
+<span class="crumb crumb--current">{{ title | e }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page page--form" data-slot="contract">
+	<header class="page-header page-header--sticky">
+		<div class="page-header__title">
+			<a class="icon-btn" href="/contracts" aria-label="Back to contracts">{{ icon("arrow-left") }}</a>
+			<div>
+				<h1 class="page-title" data-slot="title">{{ title | e }}</h1>
+				<p class="page-sub" data-slot="subtitle">&nbsp;</p>
+			</div>
+			<span class="pill" data-slot="status" hidden></span>
+		</div>
+		<div class="page-actions">
+			<button class="btn btn--ghost btn--danger" type="button" data-action="delete" hidden>{{ icon("trash") }}<span class="hide-sm">Delete</span></button>
+			<a class="btn btn--secondary" data-action="print" target="_blank" rel="noopener" hidden>{{ icon("printer") }}<span class="hide-sm">Print</span></a>
+			<button class="btn btn--primary" type="button" data-action="save" disabled>
+				{{ icon("save") }}<span>Save</span><kbd class="kbd kbd--on-primary hide-sm">Ctrl S</kbd>
+			</button>
+		</div>
+	</header>
+
+	<div class="form-layout">
+		<div class="form-main" data-slot="form">
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+		</div>
+		<aside class="form-aside" data-slot="summary"></aside>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountContractForm } from "@tp/pages/contract-form.js";
+	mountContractForm();
+</script>
+{% endblock %}

@@ -86,7 +86,8 @@ app_license = "mit"
 # ------------
 
 # before_install = "tp.install.before_install"
-# after_install = "tp.install.after_install"
+after_install = "tp.setup.install.after_install"
+after_migrate = "tp.setup.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -211,7 +212,7 @@ app_license = "mit"
 
 # Request Events
 # ----------------
-# before_request = ["tp.utils.before_request"]
+before_request = ["tp.portal.set_home_page"]
 # after_request = ["tp.utils.after_request"]
 
 # Job Events
@@ -262,3 +263,14 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+# Portal
+# ------
+
+website_redirects = [
+	{"source": "/index", "target": "/home"},
+]
+
+website_route_rules = [
+	{"from_route": "/contracts/<path:name>", "to_route": "contracts/form"},
+]

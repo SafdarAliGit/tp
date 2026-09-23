@@ -1,0 +1,121 @@
+{#
+	Application shell: sidebar navigation (from Page Access), top bar and content area.
+	Pages extend this template and fill `content` and `scripts`. Context comes from tp.portal.build_context.
+#}
+{% from "tp/templates/tp/macros.html" import icon, logo %}
+<!doctype html>
+<html lang="en">
+<head>
+	{% include "tp/templates/tp/head.html" %}
+</head>
+<body class="tp-app">
+	{% include "tp/templates/tp/icons.html" %}
+	<a class="skip-link" href="#content">Skip to content</a>
+
+	<div class="app">
+		<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+			<div class="sidebar__brand">
+				<a href="/" class="brand">
+					{{ logo(32) }}
+					<span class="brand__text">
+						<span class="brand__name">{{ app_name | e }}</span>
+						<span class="brand__sub">Operations Portal</span>
+					</span>
+				</a>
+			</div>
+
+			<button class="sidebar__search" type="button" data-action="palette">
+				{{ icon("search") }}
+				<span class="sidebar__label">Search</span>
+				<kbd class="kbd sidebar__label">Ctrl K</kbd>
+			</button>
+
+			<nav class="nav" id="nav">
+				{% for group in navigation %}
+				<div class="nav__group">
+					<div class="nav__heading">{{ group.label | e }}</div>
+					{% for item in group["items"] %}
+					<a class="nav__item{% if item.page == page.page %} is-active{% endif %}" href="{{ item.route }}"
+						data-page="{{ item.page }}" data-tooltip="{{ item.title | e }}"
+						{% if item.page == page.page %}aria-current="page"{% endif %}>
+						{{ icon(item.icon) }}
+						<span class="sidebar__label">{{ item.title | e }}</span>
+					</a>
+					{% endfor %}
+				</div>
+				{% else %}
+				<p class="nav__empty">No pages have been shared with you yet.</p>
+				{% endfor %}
+			</nav>
+
+			<div class="sidebar__footer">
+				<button class="nav__item nav__collapse" type="button" data-action="collapse" aria-label="Collapse sidebar">
+					{{ icon("panel-left") }}<span class="sidebar__label">Collapse</span>
+				</button>
+			</div>
+		</aside>
+		<div class="scrim" data-action="close-sidebar"></div>
+
+		<div class="main">
+			<header class="topbar">
+				<button class="icon-btn topbar__menu" type="button" data-action="open-sidebar" aria-label="Open navigation">
+					{{ icon("menu") }}
+				</button>
+				<div class="topbar__crumbs">{% block breadcrumbs %}<span class="crumb crumb--current">{{ title | e }}</span>{% endblock %}</div>
+				<div class="topbar__actions">
+					<button class="icon-btn" type="button" data-action="theme" aria-label="Toggle theme" data-tooltip="Theme">
+						{{ icon("sun", "theme-icon--light") }}{{ icon("moon", "theme-icon--dark") }}
+					</button>
+					<div class="menu" data-menu>
+						<button class="user-btn" type="button" data-menu-trigger aria-haspopup="menu" aria-expanded="false">
+							{% if user_info.image %}
+							<img class="avatar" src="{{ user_info.image | e }}" alt="">
+							{% else %}
+							<span class="avatar">{{ user_info.initials | e }}</span>
+							{% endif %}
+							<span class="user-btn__name">{{ user_info.full_name | e }}</span>
+							{{ icon("chevron-down", "i--sm") }}
+						</button>
+						<div class="menu__panel" role="menu">
+							<div class="menu__header">
+								<div class="menu__title">{{ user_info.full_name | e }}</div>
+								<div class="menu__sub">{{ user_info.email | e }}</div>
+							</div>
+							{% if user_info.desk_access %}
+							<a class="menu__item" role="menuitem" href="/desk">{{ icon("layers") }} Open Desk</a>
+							{% endif %}
+							{% if user_info.is_admin %}
+							<a class="menu__item" role="menuitem" href="/desk/page-access">{{ icon("shield") }} Page Access</a>
+							{% endif %}
+							<a class="menu__item" role="menuitem" href="/update-password">{{ icon("lock") }} Change Password</a>
+							<div class="menu__sep"></div>
+							<button class="menu__item menu__item--danger" role="menuitem" type="button" data-action="logout">{{ icon("log-out") }} Sign out</button>
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<main class="content" id="content" tabindex="-1">
+				{% if access_denied %}
+				<section class="state state--page">
+					<div class="state__icon state__icon--danger">{{ icon("lock") }}</div>
+					<h1 class="state__title">You don't have access to this page</h1>
+					<p class="state__text">Ask your administrator to add one of your roles to <strong>{{ title | e }}</strong> in Page Access.</p>
+					<a class="btn btn--secondary" href="/">{{ icon("arrow-left") }} Back to Dashboard</a>
+				</section>
+				{% else %}
+				{% block content %}{% endblock %}
+				{% endif %}
+			</main>
+		</div>
+	</div>
+
+	<div class="toasts" id="toasts" aria-live="polite"></div>
+
+	<script>window.frappe = window.frappe || {};</script>
+	<!-- csrf_token -->
+	<script type="application/json" id="tp-boot">{{ boot_json }}</script>
+	<script type="module">import "@tp/app.js";</script>
+	{% if not access_denied %}{% block scripts %}{% endblock %}{% endif %}
+</body>
+</html>

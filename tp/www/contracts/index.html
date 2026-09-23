@@ -1,0 +1,44 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1 class="page-title">Weaving Contracts</h1>
+			<p class="page-sub" data-slot="count">&nbsp;</p>
+		</div>
+		<div class="page-actions">
+			<button class="btn btn--secondary" type="button" data-action="refresh" aria-label="Refresh">{{ icon("refresh") }}</button>
+			<a class="btn btn--primary" href="/contracts/new" data-slot="new" hidden>{{ icon("plus") }} New Contract</a>
+		</div>
+	</header>
+
+	<div class="card card--flush">
+		<div class="toolbar">
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search contract, PO or CT no…" data-slot="search" aria-label="Search contracts">
+			</label>
+			<div class="toolbar__filters">
+				<div class="field field--inline" data-slot="buyer"></div>
+				<label class="date-range">
+					{{ icon("calendar") }}
+					<input type="date" class="input input--bare" data-slot="from" aria-label="PO start from">
+					<span class="date-range__sep">–</span>
+					<input type="date" class="input input--bare" data-slot="to" aria-label="PO start to">
+				</label>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="clear-filters" hidden>{{ icon("x") }} Clear</button>
+			</div>
+		</div>
+		<div data-slot="table"></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountContractList } from "@tp/pages/contracts.js";
+	mountContractList();
+</script>
+{% endblock %}

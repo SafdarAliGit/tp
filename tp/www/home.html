@@ -1,0 +1,35 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page page--dashboard">
+	<header class="page-header">
+		<div>
+			<p class="eyebrow" data-slot="today">&nbsp;</p>
+			<h1 class="page-title" data-slot="greeting">Welcome, {{ user_info.full_name.split(" ")[0] | e }}</h1>
+		</div>
+		{% if can_create_contract %}
+		<div class="page-actions">
+			<a class="btn btn--primary" href="/contracts/new">{{ icon("plus") }} New Contract</a>
+		</div>
+		{% endif %}
+	</header>
+
+	<div class="dashboard" data-slot="dashboard">
+		<div class="kpis">
+			{% for _ in range(4) %}<div class="kpi kpi--loading"><span class="skeleton skeleton--sm"></span><span class="skeleton skeleton--lg"></span></div>{% endfor %}
+		</div>
+		<div class="grid-2-1">
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountDashboard } from "@tp/pages/dashboard.js";
+	mountDashboard();
+</script>
+{% endblock %}

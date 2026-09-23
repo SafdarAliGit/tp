@@ -1,0 +1,40 @@
+{#
+	Generic master-data page (list + drawer form). Pages extend this and set context via
+	tp.portal.build_resource_context. Configuration: tp/config/resources.py.
+#}
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page" data-resource="{{ resource_key }}">
+	<header class="page-header">
+		<div>
+			<h1 class="page-title">{{ title | e }}</h1>
+			<p class="page-sub" data-slot="count">&nbsp;</p>
+		</div>
+		<div class="page-actions">
+			<button class="btn btn--secondary" type="button" data-action="fields" title="Choose the fields shown in the form">{{ icon("settings") }}<span class="hide-sm">Form fields</span></button>
+			<button class="btn btn--secondary" type="button" data-action="refresh" aria-label="Refresh">{{ icon("refresh") }}</button>
+			<button class="btn btn--primary" type="button" data-action="new" hidden>{{ icon("plus") }} New {{ singular | e }}</button>
+		</div>
+	</header>
+
+	<div class="card card--flush">
+		<div class="toolbar">
+			<div class="tabs" role="tablist" data-slot="tabs"></div>
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search {{ title | lower | e }}…" data-slot="search" aria-label="Search">
+			</label>
+		</div>
+		<div data-slot="table"></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountResourcePage } from "@tp/pages/resource.js";
+	mountResourcePage();
+</script>
+{% endblock %}
