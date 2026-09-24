@@ -8,7 +8,9 @@ from erpnext.stock.get_item_details import get_conversion_factor
 from frappe import _
 from frappe.utils import cint, flt, getdate, nowdate
 
-from tp.api.utils import count, like, page_api, paging, parse_json
+from tp.api.grid import editable_child_fields
+from tp.api.listview import MAX_PAGE_LENGTH, list_filters, sort_clause
+from tp.api.utils import count, duplicate_doc, like, page_api, paging, parse_json
 
 DOCTYPE = "Material Request"
 PAGE = "material-requests"
@@ -50,7 +52,6 @@ LIST_FIELDS = (
 	"per_received",
 	"modified",
 )
-SORTABLE = {"modified", "transaction_date", "schedule_date", "name"}
 
 # List tabs → status filters
 STATUS_TABS = {
@@ -71,7 +72,9 @@ def _titles(doctype: str, field: str, names) -> dict:
 	names = [n for n in set(names) if n]
 	if not names:
 		return {}
-	return dict(frappe.get_all(doctype, filters={"name": ["in", names]}, fields=["name", field], as_list=True))
+	return dict(
+		frappe.get_all(doctype, filters={"name": ["in", names]}, fields=["name", field], as_list=True)
+	)
 
 
 def _serialize(doc) -> dict:
@@ -158,9 +161,10 @@ def get_list(
 	start: int = 0,
 	page_length: int = 20,
 	order_by: str | None = None,
+	filters=None,
 ) -> dict:
-	start, page_length = paging(start, page_length)
-	filters = []
+	start, page_length = paging(start, page_length, MAX_PAGE_LENGTH)
+	filters = list_filters(DOCTYPE, filters)
 	if tab in STATUS_TABS:
 		filters.append(["status", *STATUS_TABS[tab]])
 	if purpose:
@@ -178,16 +182,12 @@ def get_list(
 	if pattern := like(txt):
 		or_filters = [["name", "like", pattern], ["title", "like", pattern], ["customer", "like", pattern]]
 
-	field, _sep, direction = (order_by or "modified desc").partition(" ")
-	if field not in SORTABLE or direction not in ("asc", "desc"):
-		field, direction = "modified", "desc"
-
 	rows = frappe.get_list(
 		DOCTYPE,
 		filters=filters,
 		or_filters=or_filters,
 		fields=list(LIST_FIELDS),
-		order_by=f"{field} {direction}",
+		order_by=sort_clause(DOCTYPE, order_by, "modified desc"),
 		limit_start=start,
 		limit_page_length=page_length,
 		distinct=True,
@@ -238,8 +238,9 @@ def get(name: str) -> dict:
 
 
 @page_api(PAGE)
-def new(contract: str | None = None, amend: str | None = None) -> dict:
-	"""An unsaved document: blank, a Yarn Request built from a contract, or an amendment."""
+def new(contract: str | None = None, amend: str | None = None, duplicate: str | None = None) -> dict:
+	"""An unsaved document: blank, a Yarn Request built from a contract, an amendment, or a
+	copy of another request (Duplicate)."""
 	if contract:
 		from towel_production.towel_production.doctype.weaving_contract_terry.weaving_contract_terry import (
 			make_yarn_request,
@@ -255,6 +256,8 @@ def new(contract: str | None = None, amend: str | None = None) -> dict:
 			frappe.throw(_("Only cancelled requests can be amended."))
 		doc = frappe.copy_doc(source)
 		doc.amended_from = source.name
+	elif duplicate:
+		doc = duplicate_doc(DOCTYPE, duplicate)
 	else:
 		doc = frappe.new_doc(DOCTYPE)
 		doc.update(_defaults())
@@ -291,9 +294,12 @@ def save(doc, submit: int = 0) -> dict:
 	if request.material_request_type != "Customer Provided":
 		request.customer = None
 
+	# The fixed item fields, plus any other editable Material Request Item field a user shows
+	# through the grid's "Configure columns"
+	item_fields = set(ITEM_FIELDS) | editable_child_fields("Material Request Item")
 	rows = []
 	for row in data.get("items") or []:
-		clean = {k: row.get(k) or None for k in ITEM_FIELDS if k in row}
+		clean = {k: row.get(k) or None for k in item_fields if k in row}
 		clean["schedule_date"] = clean.get("schedule_date") or request.schedule_date
 		clean["warehouse"] = clean.get("warehouse") or request.set_warehouse
 		if row.get("name") and not str(row["name"]).startswith("new-"):
@@ -308,7 +314,9 @@ def save(doc, submit: int = 0) -> dict:
 			if item.uom == stock_uom:
 				item.conversion_factor = 1
 			else:
-				item.conversion_factor = flt(get_conversion_factor(item.item_code, item.uom).get("conversion_factor")) or 1
+				item.conversion_factor = (
+					flt(get_conversion_factor(item.item_code, item.uom).get("conversion_factor")) or 1
+				)
 
 	if request.is_new():
 		request.insert()
@@ -369,6 +377,10 @@ def get_item_details(item_code: str, contract: str | None = None) -> dict:
 	if contract:
 		yarn = [y for y in _contract_yarn(contract)["yarn"] if y["item_code"] == item_code]
 		if not yarn:
-			frappe.throw(_("{0} is not an article in the Yarn Details of Weaving Contract {1}.").format(item_code, contract))
+			frappe.throw(
+				_("{0} is not an article in the Yarn Details of Weaving Contract {1}.").format(
+					item_code, contract
+				)
+			)
 		details["yarn"] = yarn
 	return details

@@ -3,6 +3,7 @@ import { $, html, icon, raw, setHTML } from "@tp/core/dom.js";
 import * as fmt from "@tp/core/format.js";
 import { showError } from "@tp/core/toast.js";
 import { DataTable } from "@tp/components/data-table.js";
+import { ROOT_TYPES } from "@tp/lib/root-types.js";
 
 const QUICK_LINKS = {
 	items: { label: "Items", href: "/items", icon: "package" },
@@ -96,6 +97,59 @@ function renderTopBuyers(buyers) {
 	</ol>`;
 }
 
+/** Chart of Accounts root-type cards; each opens the account tree filtered to that root type. */
+function renderAccounts(accounts) {
+	if (!accounts) return "";
+	const cards = ROOT_TYPES.map((rt) => {
+		const root = accounts.roots.find((r) => r.root_type === rt.key);
+		return root && { ...rt, count: root.count, balance: rt.credit ? -root.balance : root.balance };
+	}).filter(Boolean);
+	if (!cards.length) return "";
+
+	const link = (root) => `/chart-of-accounts?${new URLSearchParams({ company: accounts.company, ...(root ? { root } : {}) })}`;
+	const balance = (key) => cards.find((c) => c.key === key)?.balance || 0;
+	const profit = balance("Income") - balance("Expense");
+	const sub = `${accounts.company}${accounts.show_balances ? ` · balances in ${accounts.currency}` : ""}`;
+	return html`<section class="card">
+		<header class="card__header">
+			<div class="card__title"><span class="card__title-icon">${icon("list-tree")}</span>
+				<div>Chart of Accounts<div class="card__sub">${sub}</div></div>
+			</div>
+			<a class="btn btn--ghost btn--sm" href="${link()}">Open ${icon("arrow-right")}</a>
+		</header>
+		<div class="coa-kpis coa-kpis--dashboard">
+			${cards.map(
+				(c) => html`<a class="coa-kpi" data-root-type="${c.key}" href="${link(c.key)}" title="Show ${c.label.toLowerCase()} accounts">
+					<span class="coa-kpi__head"><span class="coa-kpi__icon">${icon(c.icon, "i--sm")}</span>${c.label}</span>
+					${accounts.show_balances ? html`<span class="coa-kpi__value num">${fmt.fixed(c.balance)}</span>` : ""}
+					<span class="coa-kpi__foot">${c.count} ledger${c.count === 1 ? "" : "s"}${accounts.show_balances ? ` · ${c.credit ? "credit" : "debit"} balance` : ""}</span>
+				</a>`
+			)}
+			${accounts.show_balances && cards.some((c) => c.key === "Income" || c.key === "Expense")
+				? html`<div class="coa-kpi coa-kpi--static">
+					<span class="coa-kpi__head"><span class="coa-kpi__icon">${icon("activity", "i--sm")}</span>Net ${profit >= 0 ? "profit" : "loss"}</span>
+					<span class="coa-kpi__value num ${profit < 0 ? "is-negative" : ""}">${fmt.fixed(Math.abs(profit))}</span>
+					<span class="coa-kpi__foot">Income − expenses</span>
+				</div>`
+				: ""}
+		</div>
+		${accounts.show_balances ? trialBalance(accounts) : ""}
+	</section>`;
+}
+
+/** Total debit vs total credit of the company's ledger. */
+function trialBalance({ total_debit: debit, total_credit: credit }) {
+	const diff = debit - credit;
+	const balanced = Math.abs(diff) <= 0.005;
+	return html`<div class="coa-trial">
+		<span class="coa-trial__item"><span class="coa-trial__icon coa-trial__icon--dr">${icon("arrow-up-right", "i--sm")}</span><span class="muted">Total debit</span> <strong class="num">${fmt.fixed(debit)}</strong></span>
+		<span class="coa-trial__item"><span class="coa-trial__icon coa-trial__icon--cr">${icon("arrow-left", "i--sm gl-rot")}</span><span class="muted">Total credit</span> <strong class="num">${fmt.fixed(credit)}</strong></span>
+		<span class="coa-trial__item coa-trial__status">${balanced
+			? html`<span class="pill pill--success">Trial balance matches</span>`
+			: html`<span class="pill pill--warning">Out by ${fmt.fixed(Math.abs(diff))}</span>`}</span>
+	</div>`;
+}
+
 export async function mountDashboard() {
 	$("[data-slot='today']").textContent = fmt.date(new Date().toISOString().slice(0, 10), {
 		weekday: "long",
@@ -116,6 +170,7 @@ export async function mountDashboard() {
 	}
 
 	const c = data.contracts;
+	const accounts = renderAccounts(data.accounts);
 	const links = Object.entries(data.counts).map(([key, value]) => ({ ...QUICK_LINKS[key], value }));
 	const quickLinks = links.length
 		? html`<div class="quick-links">
@@ -132,8 +187,8 @@ export async function mountDashboard() {
 	if (!c) {
 		setHTML(
 			root,
-			links.length
-				? quickLinks
+			links.length || accounts
+				? html`${accounts}${quickLinks}`
 				: html`<div class="card state"><div class="state__icon">${icon("layers")}</div><h3 class="state__title">Nothing to show yet</h3><p class="state__text">Pages shared with you will appear in the sidebar.</p></div>`
 		);
 		return;
@@ -150,6 +205,8 @@ export async function mountDashboard() {
 			${kpi({ label: "Greige weight", value: fmt.compact(t.lbs), unit: "lbs", foot: `≈ ${fmt.compact(t.lbs / 2.2046)} kg`, iconName: "scale" })}
 			${kpi({ label: "Yarn required", value: fmt.number(t.bags, 1), unit: "bags", foot: `${t.active} active contract${t.active === 1 ? "" : "s"}`, iconName: "spool" })}
 		</div>
+
+		${accounts}
 
 		<div class="grid-2-1">
 			<section class="card">

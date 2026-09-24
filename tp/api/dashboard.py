@@ -21,7 +21,60 @@ def get_summary() -> dict:
 	if has_page_access("contracts"):
 		summary["contracts"] = _contract_summary()
 
+	if has_page_access("chart-of-accounts"):
+		summary["accounts"] = _accounts_summary()
+
 	return summary
+
+
+def _accounts_summary() -> dict | None:
+	"""Ledger count and balance per root type for the user's default company, plus the trial
+	balance (total debit / credit). Balances need read access to GL Entry."""
+	companies = frappe.get_list("Company", pluck="name", order_by="name asc")
+	if not companies:
+		return None
+	default = frappe.defaults.get_user_default("Company")
+	company = default if default in companies else companies[0]
+
+	accounts = frappe.get_list(
+		"Account",
+		filters={"company": company},
+		fields=["name", "root_type", "is_group"],
+		limit_page_length=0,
+	)
+	roots = defaultdict(lambda: {"count": 0, "balance": 0.0})
+	root_type = {}
+	for account in accounts:
+		if not account.root_type:
+			continue
+		root_type[account.name] = account.root_type
+		entry = roots[account.root_type]  # every root type with accounts gets a card
+		if not account.is_group:
+			entry["count"] += 1
+
+	show_balances = bool(frappe.has_permission("GL Entry", "read"))
+	total_debit = total_credit = 0.0
+	if show_balances:
+		for row in frappe.get_list(
+			"GL Entry",
+			filters=[["company", "=", company], ["is_cancelled", "=", 0]],
+			fields=["account", {"SUM": "debit", "as": "debit"}, {"SUM": "credit", "as": "credit"}],
+			group_by="account",
+			limit_page_length=0,
+		):
+			total_debit += flt(row.debit)
+			total_credit += flt(row.credit)
+			if row.account in root_type:
+				roots[root_type[row.account]]["balance"] += flt(row.debit) - flt(row.credit)
+
+	return {
+		"company": company,
+		"currency": frappe.get_cached_value("Company", company, "default_currency"),
+		"show_balances": show_balances,
+		"total_debit": total_debit,
+		"total_credit": total_credit,
+		"roots": [{"root_type": key, **value} for key, value in roots.items()],
+	}
 
 
 def _contract_summary() -> dict:

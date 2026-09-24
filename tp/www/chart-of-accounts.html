@@ -9,7 +9,11 @@
 			<p class="page-sub" data-slot="count">&nbsp;</p>
 		</div>
 		<div class="page-actions">
-			<label class="coa-company">
+			<div class="view-switch coa-views" role="group" aria-label="View">
+				<button class="view-switch__btn" type="button" data-view="tree" aria-pressed="true">{{ icon("list-tree", "i--sm") }} Tree</button>
+				<button class="view-switch__btn" type="button" data-view="list" aria-pressed="false">{{ icon("menu", "i--sm") }} List</button>
+			</div>
+			<label class="coa-company" data-tree-only>
 				<span class="sr-only">Company</span>
 				<select class="select" data-slot="company" aria-label="Company"></select>
 			</label>
@@ -18,9 +22,7 @@
 		</div>
 	</header>
 
-	<div class="coa-kpis" data-slot="kpis" role="group" aria-label="Filter by root type"></div>
-
-	<div class="card card--flush">
+	<div class="card card--flush" data-panel="tree">
 		<div class="toolbar">
 			<label class="search-field">
 				{{ icon("search") }}
@@ -41,13 +43,29 @@
 			</div>
 		</div>
 		<div data-slot="tree"></div>
-		<div class="coa-footer" data-slot="footer" hidden></div>
 	</div>
 
-	<p class="coa-help">
+	<p class="coa-help" data-panel="tree">
 		<kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd> move · <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> collapse / expand ·
 		<kbd class="kbd">Enter</kbd> edit · <kbd class="kbd">N</kbd> new child · <kbd class="kbd">Shift F10</kbd> or right-click for more
 	</p>
+
+	{# List view: the generic resource list (pages/resource.js) for Accounts #}
+	<div class="card card--flush" data-panel="list" data-list-root hidden>
+		<div class="toolbar">
+			<div class="tabs" role="tablist" data-slot="tabs"></div>
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search accounts…  ( / )" data-slot="search" aria-label="Search accounts">
+			</label>
+			<div class="toolbar__filters">
+				<span class="muted coa-list-count" data-slot="count"></span>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="fields" title="Choose the fields shown in the account form">{{ icon("settings") }}<span class="hide-sm">Form fields</span></button>
+			</div>
+		</div>
+		<div class="toolbar toolbar--options" data-slot="list-options"></div>
+		<div data-slot="table"></div>
+	</div>
 </div>
 {% endblock %}
 

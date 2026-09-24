@@ -13,7 +13,13 @@ import frappe
 from frappe import _
 from frappe.sessions import get_csrf_token
 
-from tp.access import get_doctype_permissions, get_navigation, get_page, has_page_access
+from tp.access import (
+	get_doctype_permissions,
+	get_link_routes,
+	get_navigation,
+	get_page,
+	has_page_access,
+)
 
 APP_NAME = "Towel Production"
 
@@ -126,6 +132,8 @@ def build_context(context, page: str, **boot):
 			"permissions": get_doctype_permissions(definition.get("reference_doctype")),
 			"currency": frappe.defaults.get_global_default("currency"),
 			"number_format": frappe.db.get_default("number_format") or "#,###.##",
+			"link_routes": get_link_routes() if allowed else {},
+			"desk": context.user_info.desk_access,
 			**boot,
 		}
 	)
@@ -141,23 +149,30 @@ def set_home_page():
 		frappe.local.flags.home_page = "home"
 
 
+def resource_boot(key: str) -> dict:
+	"""Boot data for the generic list + drawer UI of a resource (tp/config/resources.py)."""
+	from tp.api.resources import form_fields
+	from tp.config.resources import RESOURCES
+
+	config = RESOURCES[key]
+	return {
+		"key": key,
+		"singular": config["singular"],
+		"title_field": config["title_field"],
+		"tabs": [
+			{"key": t["key"], "label": t["label"], "filters": t["filters"]} for t in config.get("tabs", ())
+		],
+		"order_by": config.get("order_by", "modified desc"),
+		"list_fields": config["list_fields"],
+		"form_fields": form_fields(config),
+	}
+
+
 def build_resource_context(context, key: str):
 	"""Context for a master-data page declared in tp/config/resources.py."""
-	from tp.api.resources import form_fields
 	from tp.config.resources import RESOURCES
 
 	config = RESOURCES[key]
 	context.resource_key = key
 	context.singular = config["singular"]
-	return build_context(
-		context,
-		config["page"],
-		resource={
-			"key": key,
-			"singular": config["singular"],
-			"title_field": config["title_field"],
-			"tabs": [{"key": t["key"], "label": t["label"]} for t in config.get("tabs", ())],
-			"list_fields": config["list_fields"],
-			"form_fields": form_fields(config),
-		},
-	)
+	return build_context(context, config["page"], resource=resource_boot(key))

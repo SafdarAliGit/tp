@@ -8,6 +8,7 @@ import { confirm } from "@tp/core/overlay.js";
 import { toast, showError } from "@tp/core/toast.js";
 import { Form } from "@tp/components/form.js";
 import { EditableGrid } from "@tp/components/grid.js";
+import { collapsibleSections } from "@tp/components/sections.js";
 import { openMenu } from "@tp/components/popover-menu.js";
 import { recalculate } from "@tp/lib/contract-calc.js";
 import { statusTone } from "@tp/lib/status.js";
@@ -56,7 +57,7 @@ const section = (id, iconName, title, sub) => html`
 	</section>`;
 
 export async function mountContractForm() {
-	const { contract: name, permissions, yarn_request: canRequestYarn } = boot();
+	const { contract: name, permissions, yarn_request: canRequestYarn, duplicate: copyOf } = boot();
 	const root = $("[data-slot='contract']");
 	const formNode = $("[data-slot='form']", root);
 	const hasDesk = Boolean(document.querySelector('a[href="/desk"]'));
@@ -66,7 +67,11 @@ export async function mountContractForm() {
 	try {
 		[meta, doc] = await Promise.all([
 			api.get("tp.api.contracts.get_meta"),
-			name ? api.get("tp.api.contracts.get", { name }).then((r) => r.doc) : Promise.resolve(null),
+			name
+				? api.get("tp.api.contracts.get", { name }).then((r) => r.doc)
+				: copyOf
+					? api.get("tp.api.contracts.get_copy", { name: copyOf }).then((r) => r.doc)
+					: Promise.resolve(null),
 		]);
 	} catch (err) {
 		showError(err, "Couldn't open contract");
@@ -75,7 +80,8 @@ export async function mountContractForm() {
 	}
 
 	const perms = meta.permissions || permissions;
-	const state = { doc: doc || { product_detail: [], yarn_details: [] }, dirty: false, saving: false, connections: null };
+	// A duplicate is unsaved work: leaving the page asks first
+	const state = { doc: doc || { product_detail: [], yarn_details: [] }, dirty: Boolean(copyOf && !name), saving: false, connections: null };
 	const isNew = () => !state.doc.name;
 	const readOnly = () => (isNew() ? !perms.create : !perms.write);
 
@@ -89,6 +95,7 @@ export async function mountContractForm() {
 		${section("connections", "link", "Connections", "Documents created from this contract")}`
 	);
 	const body = (id) => $(`#${id} [data-body]`, formNode);
+	collapsibleSections(formNode, "contract");
 
 	let details, construction, products, yarn;
 
@@ -136,6 +143,8 @@ export async function mountContractForm() {
 		});
 
 		products = new EditableGrid(body("products"), {
+			doctype: DOCTYPE,
+			fieldname: "product_detail",
 			rows: d.product_detail,
 			readOnly: ro,
 			addLabel: "Add product",
@@ -167,6 +176,8 @@ export async function mountContractForm() {
 		});
 
 		yarn = new EditableGrid(body("yarn"), {
+			doctype: DOCTYPE,
+			fieldname: "yarn_details",
 			rows: d.yarn_details,
 			readOnly: ro,
 			addLabel: "Add yarn",
@@ -237,7 +248,7 @@ export async function mountContractForm() {
 		if (crumb) crumb.textContent = d.name || "New Contract";
 
 		const sub = [d.buyer_title || d.buyers_name, d.modified && `Updated ${fmt.relative(d.modified)}`].filter(Boolean).join(" · ");
-		$("[data-slot='subtitle']", root).textContent = sub || "Fill in the details and save to create the contract";
+		$("[data-slot='subtitle']", root).textContent = isNew() && copyOf ? `Copy of ${copyOf}${sub ? ` · ${sub}` : ""}` : sub || "Fill in the details and save to create the contract";
 
 		const status = $("[data-slot='status']", root);
 		status.hidden = false;
@@ -257,6 +268,7 @@ export async function mountContractForm() {
 		save.disabled = state.saving || (!state.dirty && !isNew());
 		$("[data-action='delete']", root).hidden = isNew() || !perms.delete;
 		$("[data-action='create']", root).hidden = isNew() || !canRequestYarn;
+		$("[data-action='duplicate']", root).hidden = isNew() || !perms.create;
 		const print = $("[data-action='print']", root);
 		print.hidden = isNew() || !perms.print;
 		if (!isNew()) print.href = `/printview?doctype=${encodeURIComponent(DOCTYPE)}&name=${encodeURIComponent(d.name)}&trigger_print=1`;
@@ -514,12 +526,19 @@ export async function mountContractForm() {
 		window.location.href = `/stock/material-requests/new?contract=${encodeURIComponent(state.doc.name)}`;
 	}
 
+	// Duplicate: a new, unsaved contract with the same details, products and yarn (like ERPNext)
+	function duplicate() {
+		if (state.dirty) return toast.error("Save the contract first", { text: "Duplicate copies the saved contract." });
+		window.location.href = `/contracts/new?duplicate=${encodeURIComponent(state.doc.name)}`;
+	}
+
 	function openCreateMenu(e) {
 		openMenu(e.currentTarget, [{ label: "Yarn Request", icon: "spool", run: createYarnRequest }]);
 	}
 
 	$("[data-action='save']", root).addEventListener("click", save);
 	$("[data-action='create']", root).addEventListener("click", openCreateMenu);
+	$("[data-action='duplicate']", root).addEventListener("click", duplicate);
 	$("[data-action='delete']", root).addEventListener("click", remove);
 	document.addEventListener("keydown", (e) => {
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {

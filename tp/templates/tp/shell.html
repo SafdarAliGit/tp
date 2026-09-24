@@ -32,7 +32,7 @@
 
 			<nav class="nav" id="nav">
 				{% for group in navigation %}
-				<div class="nav__group">
+				<div class="nav__group" data-section="{{ group.label | lower | e }}">
 					<div class="nav__heading">{{ group.label | e }}</div>
 					{% for item in group["items"] %}
 					<a class="nav__item{% if item.page == page.page %} is-active{% endif %}" href="{{ item.route }}"

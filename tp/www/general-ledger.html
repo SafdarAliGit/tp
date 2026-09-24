@@ -1,0 +1,45 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page gl" data-slot="gl">
+	<header class="page-header">
+		<div>
+			<h1 class="page-title">General Ledger</h1>
+			<p class="page-sub" data-slot="subtitle">&nbsp;</p>
+		</div>
+		<div class="page-actions">
+			<button class="btn btn--secondary" type="button" data-action="refresh" aria-label="Refresh" title="Refresh (R)">{{ icon("refresh") }}</button>
+			<button class="btn btn--secondary" type="button" data-action="print">{{ icon("printer") }}<span class="hide-sm">Print</span></button>
+			<button class="btn btn--primary" type="button" data-action="export" aria-haspopup="menu">{{ icon("download") }}<span class="hide-sm">Export</span>{{ icon("chevron-down") }}</button>
+		</div>
+	</header>
+
+	<section class="card gl-filters" data-slot="filters" aria-label="Filters">
+		<div class="skeleton skeleton--block"></div>
+	</section>
+
+	<section class="card card--flush gl-results">
+		<div class="toolbar">
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search in results… (account, voucher, party, remarks)" data-slot="search" aria-label="Search in results">
+			</label>
+			<div class="toolbar__filters">
+				<span class="muted gl-count" data-slot="count"></span>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="expand" hidden>{{ icon("chevrons-up-down") }} Expand all</button>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="collapse" hidden>{{ icon("chevrons-down-up") }} Collapse all</button>
+				<button class="btn btn--secondary btn--sm" type="button" data-action="columns">{{ icon("settings") }} Columns</button>
+			</div>
+		</div>
+		<div data-slot="table"></div>
+	</section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountGeneralLedger } from "@tp/pages/general-ledger.js";
+	mountGeneralLedger();
+</script>
+{% endblock %}

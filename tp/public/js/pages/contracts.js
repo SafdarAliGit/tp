@@ -3,6 +3,9 @@ import { $, icon, raw, boot, debounce } from "@tp/core/dom.js";
 import { showError } from "@tp/core/toast.js";
 import { DataTable } from "@tp/components/data-table.js";
 import { LinkField } from "@tp/components/link-field.js";
+import { ListOptions } from "@tp/components/list-options.js";
+
+const DOCTYPE = "Weaving Contract Terry";
 
 export function mountContractList() {
 	const { permissions: perms } = boot();
@@ -13,7 +16,6 @@ export function mountContractList() {
 		from_date: params.get("from") || "",
 		to_date: params.get("to") || "",
 		start: 0,
-		sort: { field: "modified", dir: "desc" },
 	};
 
 	$("[data-slot='new']").hidden = !perms.create;
@@ -29,6 +31,7 @@ export function mountContractList() {
 		doctype: "Customer",
 		value: state.buyer,
 		placeholder: "All buyers",
+		allowCreate: false,
 		onChange: (value) => {
 			state.buyer = value;
 			reload();
@@ -48,11 +51,6 @@ export function mountContractList() {
 			{ key: "total_bags", label: "Yarn Bags", type: "number" },
 			{ key: "total_amount", label: "Amount", type: "currency", sortable: true },
 		],
-		sort: state.sort,
-		onSort: (sort) => {
-			state.sort = sort;
-			reload();
-		},
 		onRowClick: (row) => (window.location.href = `/contracts/${encodeURIComponent(row.name)}`),
 		onPage: (start) => {
 			state.start = start;
@@ -66,6 +64,24 @@ export function mountContractList() {
 		},
 	});
 
+	const options = new ListOptions({
+		page: "contracts",
+		table,
+		sort: { field: "modified", dir: "desc" },
+		quickFilters: () => [
+			state.buyer && [DOCTYPE, "buyers_name", "=", state.buyer],
+			state.from_date && [DOCTYPE, "po_start_date", ">=", state.from_date],
+			state.to_date && [DOCTYPE, "po_start_date", "<=", state.to_date],
+		].filter(Boolean),
+		search: () => state.txt,
+		openRecord: (name) => (window.location.href = `/contracts/${encodeURIComponent(name)}`),
+		onChange: () => reload(),
+		onCount: (total) => showCount(total),
+	});
+	const showCount = (total) => {
+		$("[data-slot='count']").textContent = `${total.toLocaleString()} contract${total === 1 ? "" : "s"}`;
+	};
+
 	const syncUrl = () => {
 		const q = new URLSearchParams();
 		if (state.txt) q.set("q", state.txt);
@@ -78,9 +94,11 @@ export function mountContractList() {
 
 	let controller;
 	async function load() {
+		syncUrl();
+		await options.ready;
+		if (options.isReport) return options.load();
 		controller?.abort();
 		controller = new AbortController();
-		syncUrl();
 		table.loading();
 		try {
 			const result = await api.get(
@@ -91,13 +109,12 @@ export function mountContractList() {
 					from_date: state.from_date,
 					to_date: state.to_date,
 					start: state.start,
-					page_length: 20,
-					order_by: `${state.sort.field} ${state.sort.dir}`,
+					...options.listArgs(),
 				},
 				{ signal: controller.signal }
 			);
 			table.update(result);
-			$("[data-slot='count']").textContent = `${result.total.toLocaleString()} contract${result.total === 1 ? "" : "s"}`;
+			showCount(result.total);
 		} catch (err) {
 			showError(err, "Couldn't load contracts");
 		}

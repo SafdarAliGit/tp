@@ -133,9 +133,9 @@ RESOURCES = {
 			{"fieldname": "color", "label": "Color", "fieldtype": "Color", "reqd": 1, "default": "#5C2D91"},
 		),
 	},
+	# Listed on the Chart of Accounts page (Tree | List); tp/www/accounts redirects there
 	"accounts": {
-		"page": "accounts",
-		"pages": ("chart-of-accounts",),
+		"page": "chart-of-accounts",
 		"doctype": "Account",
 		"singular": "Account",
 		"title_field": "account_name",

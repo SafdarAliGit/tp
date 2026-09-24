@@ -26,6 +26,8 @@ export function openOverlay(node, { onClose, initialFocus } = {}) {
 	};
 
 	const onKey = (e) => {
+		// Stacked overlays (e.g. a quick entry opened from a drawer): only the top one reacts
+		if ([...document.querySelectorAll(".overlay:not(.is-closing)")].pop() !== node) return;
 		if (e.key === "Escape") {
 			e.stopPropagation();
 			close(false);
@@ -83,7 +85,7 @@ export function confirm({ title, text = "", confirmLabel = "Confirm", danger = f
  * Side drawer. Returns { node, body, footer, close }.
  * `onBeforeClose` may return false to keep it open (e.g. unsaved changes).
  */
-export function drawer({ title, subtitle = "" }) {
+export function drawer({ title, subtitle = "", onClose }) {
 	const node = el(html`
 		<div class="overlay overlay--drawer">
 			<section class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
@@ -99,7 +101,7 @@ export function drawer({ title, subtitle = "" }) {
 			</section>
 		</div>
 	`);
-	const close = openOverlay(node, { initialFocus: ".drawer__body input:not([readonly]), .drawer__body select" });
+	const close = openOverlay(node, { initialFocus: ".drawer__body input:not([readonly]), .drawer__body select", onClose });
 	node.querySelector("[data-close]").addEventListener("click", () => close(false));
 	return {
 		node,

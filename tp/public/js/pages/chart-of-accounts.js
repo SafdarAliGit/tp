@@ -1,12 +1,15 @@
 /**
  * Chart of Accounts: the company's account tree with debit / credit / balance per account
  * (groups include their children), like ERPNext's tree view plus:
- *   - root-type cards that double as filters, instant search that keeps the matching branch,
+ *   - instant search that keeps the matching branch,
  *     "as on" date, hide zero balances, show disabled, expand / collapse all, CSV export
- *   - a trial-balance check (total debit vs credit) under the tree
  *   - row actions: edit, add child, rename / renumber, group ↔ ledger, merge, enable / disable,
  *     delete, General Ledger, copy name; also on right-click and from the keyboard
  * Expanded branches, company and filters are remembered per browser.
+ * `?company=…&root=Asset` (links from the dashboard's root-type cards) opens a company filtered
+ * to a root type. Tree | List: the List view is the generic account list (pages/resource.js,
+ * with filters, report view, bulk actions…); `?view=list` opens it, `?open=<account>` opens an
+ * account's form (Link field arrows).
  */
 import { api } from "@tp/core/api.js";
 import { $, html, icon, raw, boot, debounce, storage, setHTML } from "@tp/core/dom.js";
@@ -16,14 +19,9 @@ import { confirm } from "@tp/core/overlay.js";
 import { openResourceForm, deleteRecord } from "@tp/components/resource-form.js";
 import { openMenu, closeMenu } from "@tp/components/popover-menu.js";
 import { formDialog } from "@tp/components/form-dialog.js";
+import { ROOT_TYPES } from "@tp/lib/root-types.js";
+import { mountResourcePage } from "@tp/pages/resource.js";
 
-const ROOT_TYPES = [
-	{ key: "Asset", label: "Assets", icon: "landmark", credit: false },
-	{ key: "Liability", label: "Liabilities", icon: "scale", credit: true },
-	{ key: "Equity", label: "Equity", icon: "layers", credit: true },
-	{ key: "Income", label: "Income", icon: "arrow-up-right", credit: true },
-	{ key: "Expense", label: "Expenses", icon: "coins", credit: false },
-];
 const ROOT_ORDER = ROOT_TYPES.map((r) => r.key);
 const EPSILON = 0.005;
 
@@ -38,11 +36,15 @@ export function mountChartOfAccounts() {
 	const treeNode = slot("tree");
 	const searchInput = slot("search");
 	const hasDesk = Boolean(document.querySelector('a[href="/desk"]'));
+	const params = new URLSearchParams(location.search);
+	const openAccount = params.get("open");
+	if (["company", "root", "view", "open"].some((k) => params.has(k))) history.replaceState(null, "", location.pathname);
+	const savedCompany = storage.get("tp-coa-company");
 
 	const state = {
-		company: companies.includes(storage.get("tp-coa-company")) ? storage.get("tp-coa-company") : defaultCompany,
+		company: [params.get("company"), savedCompany].find((c) => companies.includes(c)) || defaultCompany,
 		txt: "",
-		root: null,
+		root: ROOT_ORDER.includes(params.get("root")) ? params.get("root") : null,
 		toDate: "",
 		hideZero: storage.get("tp-coa-hide-zero") === "1",
 		showDisabled: storage.get("tp-coa-show-disabled") === "1",
@@ -99,22 +101,42 @@ export function mountChartOfAccounts() {
 		}
 	});
 
+	/* ---------- Tree | List ---------- */
+	const listRoot = $("[data-list-root]", page);
+	let list = null;
+	let view = params.get("view") === "list" || (!params.get("view") && storage.get("tp-coa-view") === "list") ? "list" : "tree";
+	function setView(next) {
+		view = next;
+		storage.set("tp-coa-view", view === "list" ? "list" : null);
+		page.querySelectorAll("[data-panel]").forEach((n) => (n.hidden = n.dataset.panel !== view));
+		page.querySelectorAll("[data-tree-only]").forEach((n) => (n.hidden = view !== "tree" || (n.matches(".coa-company") && companies.length < 2)));
+		page.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+		page.classList.toggle("coa--list", view === "list");
+		if (view === "list") {
+			if (list) list.reload();
+			else list = mountResourcePage({ root: listRoot, handleOpen: false });
+			slot("count").textContent = "Every account of every company you can access";
+		} else if (data) render();
+	}
 	page.addEventListener("click", (e) => {
+		const switcher = e.target.closest("[data-view]");
+		if (switcher) setView(switcher.dataset.view);
+	});
+
+	page.addEventListener("click", (e) => {
+		// The List view handles its own buttons (pages/resource.js)
+		if (e.target.closest("[data-list-root]")) return;
 		const action = e.target.closest("[data-action]")?.dataset.action;
-		if (action === "refresh") load();
-		else if (action === "new") newAccount(null);
+		if (action === "refresh") view === "list" ? list?.reload() : load();
+		else if (action === "new") view === "list" ? list?.openForm(null) : newAccount(null);
 		else if (action === "expand") setAllExpanded(true);
 		else if (action === "collapse-all") setAllExpanded(false);
 		else if (action === "export") exportCsv();
-		const card = e.target.closest("[data-root]");
-		if (card) {
-			state.root = state.root === card.dataset.root ? null : card.dataset.root;
-			render();
-		}
 	});
 
 	document.addEventListener("keydown", (e) => {
 		if (e.target.closest("input, textarea, select, .overlay") || e.ctrlKey || e.metaKey || e.altKey) return;
+		if (view === "list") return; // the List view has its own shortcuts
 		if (e.key === "/") {
 			e.preventDefault();
 			searchInput.focus();
@@ -151,7 +173,7 @@ export function mountChartOfAccounts() {
 			buildTree(result);
 			state.expanded = restoreExpanded() ?? new Set(data.roots.map((a) => a.name));
 			$("[data-action='new']", page).hidden = !data.permissions.create;
-			render();
+			if (view === "tree") render();
 		} catch (err) {
 			if (err.name === "AbortError") return;
 			showError(err, "Couldn't load the chart of accounts");
@@ -240,7 +262,7 @@ export function mountChartOfAccounts() {
 
 	function rowHTML({ account: a, depth, expandable, expanded, context }) {
 		const perms = data.permissions;
-		return html`<tr data-name="${a.name}" tabindex="-1" role="row" aria-level="${depth + 1}"
+		return html`<tr data-name="${a.name}" data-root-type="${a.root_type || ""}" tabindex="-1" role="row" aria-level="${depth + 1}"
 			${raw(expandable ? `aria-expanded="${expanded}"` : "")}
 			class="coa-row ${a.is_group ? "is-group" : ""} ${depth === 0 ? "is-root" : ""} ${context ? "is-context" : ""} ${a.disabled ? "is-disabled" : ""} ${a.name === state.focused ? "is-focused" : ""}">
 			<td role="gridcell">
@@ -272,10 +294,8 @@ export function mountChartOfAccounts() {
 
 	function render() {
 		if (!data) return;
-		renderKpis();
 		if (!data.accounts.length) {
 			slot("count").textContent = state.company;
-			slot("footer").hidden = true;
 			setHTML(
 				treeNode,
 				emptyState(
@@ -309,7 +329,7 @@ export function mountChartOfAccounts() {
 					</tr></thead>
 					<tbody>${rows.map(rowHTML)}</tbody>
 				</table></div>
-				${state.txt || state.root || state.hideZero ? html`<div class="coa-filtered">Showing ${total.toLocaleString()} of ${data.accounts.length.toLocaleString()} accounts
+				${state.txt || state.root || state.hideZero ? html`<div class="coa-filtered"><span>Showing ${total.toLocaleString()} of ${data.accounts.length.toLocaleString()} accounts${state.root ? html` · <strong>${ROOT_TYPES.find((r) => r.key === state.root).label}</strong> only` : ""}</span>
 					<button class="btn btn--ghost btn--sm" type="button" data-clear>${icon("x")} Clear filters</button></div>` : ""}`
 			);
 			$("[data-clear]", treeNode)?.addEventListener("click", clearFilters);
@@ -317,52 +337,6 @@ export function mountChartOfAccounts() {
 			const focusRowNode = $(`tr[data-name="${CSS.escape(state.focused || "")}"]`, treeNode) || $("tr[data-name]", treeNode);
 			if (focusRowNode) focusRowNode.tabIndex = 0;
 		}
-		renderFooter();
-	}
-
-	function renderKpis() {
-		const totals = ROOT_TYPES.map((rt) => {
-			const roots = data.roots.filter((a) => a.root_type === rt.key);
-			const balance = roots.reduce((sum, a) => sum + (a.balance || 0), 0);
-			const count = data.accounts.filter((a) => a.root_type === rt.key && !a.is_group).length;
-			return { ...rt, present: roots.length > 0, balance: rt.credit ? -balance : balance, count };
-		}).filter((t) => t.present);
-
-		setHTML(
-			slot("kpis"),
-			html`${totals.map(
-				(t) => html`<button class="coa-kpi ${state.root === t.key ? "is-active" : ""}" type="button" data-root="${t.key}" aria-pressed="${state.root === t.key}">
-					<span class="coa-kpi__head"><span class="coa-kpi__icon">${icon(t.icon, "i--sm")}</span>${t.label}</span>
-					${data.show_balances ? html`<span class="coa-kpi__value num">${fmt.fixed(t.balance)}</span>` : ""}
-					<span class="coa-kpi__foot">${t.count} ledger${t.count === 1 ? "" : "s"}${data.show_balances ? ` · ${t.credit ? "credit" : "debit"} balance` : ""}</span>
-				</button>`
-			)}`
-		);
-	}
-
-	function renderFooter() {
-		const footer = slot("footer");
-		if (!data.show_balances || !data.accounts.length) {
-			footer.hidden = true;
-			return;
-		}
-		const debit = data.roots.reduce((s, a) => s + (a.debit || 0), 0);
-		const credit = data.roots.reduce((s, a) => s + (a.credit || 0), 0);
-		const diff = debit - credit;
-		const balanced = Math.abs(diff) <= EPSILON;
-		const income = data.roots.filter((a) => a.root_type === "Income").reduce((s, a) => s - (a.balance || 0), 0);
-		const expense = data.roots.filter((a) => a.root_type === "Expense").reduce((s, a) => s + (a.balance || 0), 0);
-		const profit = income - expense;
-		footer.hidden = false;
-		setHTML(
-			footer,
-			html`<span class="coa-footer__item"><span class="muted">Total debit</span> <strong class="num">${fmt.fixed(debit)}</strong></span>
-			<span class="coa-footer__item"><span class="muted">Total credit</span> <strong class="num">${fmt.fixed(credit)}</strong></span>
-			<span class="coa-footer__item">${balanced
-				? html`<span class="pill pill--success">Trial balance matches</span>`
-				: html`<span class="pill pill--warning">Out by ${fmt.fixed(Math.abs(diff))}</span>`}</span>
-			<span class="coa-footer__item coa-footer__profit"><span class="muted">Net ${profit >= 0 ? "profit" : "loss"}</span> <strong class="num">${fmt.fixed(Math.abs(profit))}</strong></span>`
-		);
 	}
 
 	function skeleton() {
@@ -527,7 +501,9 @@ export function mountChartOfAccounts() {
 	/* ---------- Actions ---------- */
 	function openActions(account, anchor) {
 		const perms = data.permissions;
-		const ledgerUrl = `/desk/query-report/General Ledger?${new URLSearchParams({ company: state.company, account: account.name, group_by: "Group by Voucher (Consolidated)" })}`;
+		// The portal's own General Ledger (tp/www/general-ledger), opened on this account
+		const ledgerUrl = `/general-ledger?${new URLSearchParams({ company: state.company, account: account.name, period: "this-fy" })}`;
+		const hasLedger = Boolean(document.querySelector("#nav [data-page='general-ledger']"));
 		openMenu(anchor, [
 			{ label: perms.write ? "Edit account" : "View account", icon: perms.write ? "pencil" : "eye", run: () => editAccount(account) },
 			account.is_group && perms.create && { label: "Add child account", icon: "plus", run: () => newAccount(account) },
@@ -546,7 +522,7 @@ export function mountChartOfAccounts() {
 				run: () => toggleDisabled(account),
 			},
 			{ sep: true },
-			data.show_balances && hasDesk && { label: "General Ledger", icon: "book-open", href: ledgerUrl, newTab: true },
+			hasLedger && { label: "General Ledger", icon: "book-open", href: ledgerUrl },
 			hasDesk && { label: "Open in Desk", icon: "external", href: `/desk/account/${encodeURIComponent(account.name)}`, newTab: true },
 			{ label: "Copy account name", icon: "copy", run: () => copyName(account) },
 			perms.delete && account.parent_account && { sep: true },
@@ -723,5 +699,12 @@ export function mountChartOfAccounts() {
 		toast.success("Exported", { text: `${rows.length} accounts` });
 	}
 
-	load();
+	setView(view);
+	load().then(() => {
+		// `?open=<account>`: the account's form (from a Link field arrow or the old Accounts page)
+		if (!openAccount) return;
+		const account = data?.byName.get(openAccount);
+		if (account) editAccount(account);
+		else openResourceForm({ resource, name: openAccount, fields: resource.form_fields, permissions: boot().permissions, onSaved: () => (view === "list" ? list?.reload() : load()) });
+	});
 }

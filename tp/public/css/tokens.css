@@ -69,8 +69,22 @@
 	--border: #e2e8f0;
 	--border-strong: #cdd6e3;
 	--text: #1a1c1f;
-	--text-2: #474d57;
-	--text-muted: #6a717b;
+	--text-2: #1f2328;
+	--text-muted: #3a4049;
+	--text-placeholder: #8a919b;
+
+	/* Icon tones (theme-aware): sidebar sections, card and action icons */
+	--icon-blue: #2563eb;
+	--icon-violet: #7c3aed;
+	--icon-teal: #0d9488;
+	--icon-amber: #c2410c;
+	--icon-indigo: #4f46e5;
+	--icon-rose: #e11d48;
+	--icon-default: var(--primary);
+	--icon-green: #15803d;
+	--icon-orange: #ea580c;
+	--icon-sky: #0284c7;
+	--icon-gold: #a16207;
 	--text-on-brand: #ffffff;
 
 	--primary: var(--blue-600);
@@ -123,6 +137,17 @@
 		--text: #f0f3f8;
 		--text-2: #c2cad6;
 		--text-muted: #929ba8;
+		--text-placeholder: #7a8391;
+		--icon-blue: #7ab0ff;
+		--icon-violet: #b99cff;
+		--icon-teal: #4fd1c5;
+		--icon-amber: #fbbf6a;
+		--icon-indigo: #a5b4fc;
+		--icon-rose: #fb7196;
+		--icon-green: #4ade80;
+		--icon-orange: #fb923c;
+		--icon-sky: #38bdf8;
+		--icon-gold: #facc15;
 		--primary: #5f8fd6;
 		--primary-hover: #77a1df;
 		--primary-active: #4f7ec4;
@@ -166,6 +191,17 @@
 	--text: #f0f3f8;
 	--text-2: #c2cad6;
 	--text-muted: #929ba8;
+	--text-placeholder: #7a8391;
+	--icon-blue: #7ab0ff;
+	--icon-violet: #b99cff;
+	--icon-teal: #4fd1c5;
+	--icon-amber: #fbbf6a;
+	--icon-indigo: #a5b4fc;
+	--icon-rose: #fb7196;
+	--icon-green: #4ade80;
+	--icon-orange: #fb923c;
+	--icon-sky: #38bdf8;
+	--icon-gold: #facc15;
 	--primary: #5f8fd6;
 	--primary-hover: #77a1df;
 	--primary-active: #4f7ec4;

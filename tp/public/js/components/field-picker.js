@@ -1,7 +1,7 @@
 /**
  * Popup for choosing which fields a form shows.
  *
- *   const picked = await pickFields({ title, fields, selected, defaults });
+ *   const picked = await pickFields({ title, text, fields, selected, defaults });
  *   // → array of fieldnames, or null when cancelled
  *
  * Fields flagged `locked` (required) are always ticked and can't be removed.
@@ -9,12 +9,12 @@
 import { html, icon, el, raw } from "@tp/core/dom.js";
 import { openOverlay } from "@tp/core/overlay.js";
 
-export function pickFields({ title = "Form fields", fields, selected, defaults }) {
+export function pickFields({ title = "Form fields", text = "Choose the fields shown in the form. Required fields are always shown.", fields, selected, defaults }) {
 	return new Promise((resolve) => {
 		const chosen = new Set(selected);
 		const groups = [];
 		for (const f of fields) {
-			const name = f.standard ? "Default fields" : f.section;
+			const name = f.section || (f.standard ? "Default fields" : "Details");
 			let group = groups.find((g) => g.name === name);
 			if (!group) groups.push((group = { name, fields: [] }));
 			group.fields.push(f);
@@ -26,7 +26,7 @@ export function pickFields({ title = "Form fields", fields, selected, defaults }
 					<header class="picker__header">
 						<div>
 							<h2 class="modal__title" id="picker-title">${title}</h2>
-							<p class="modal__text">Choose the fields shown in the form. Required fields are always shown.</p>
+							<p class="modal__text">${text}</p>
 						</div>
 						<button class="icon-btn" type="button" data-result="cancel" aria-label="Close">${icon("x")}</button>
 					</header>

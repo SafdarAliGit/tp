@@ -4,7 +4,8 @@ import frappe
 from frappe import _
 
 from tp.access import get_doctype_permissions, has_page_access
-from tp.api.utils import count, like, paging, parse_json
+from tp.api.listview import MAX_PAGE_LENGTH, list_filters, sort_clause
+from tp.api.utils import count, duplicate_doc, like, paging, parse_json
 from tp.config.resources import RESOURCES
 
 
@@ -116,14 +117,24 @@ def _form_values(resource: dict, doc) -> dict:
 
 @frappe.whitelist(methods=["GET", "POST"])
 def get_list(
-	resource: str, txt: str | None = None, tab: str | None = None, start: int = 0, page_length: int = 20
+	resource: str,
+	txt: str | None = None,
+	tab: str | None = None,
+	start: int = 0,
+	page_length: int = 20,
+	filters=None,
+	order_by: str | None = None,
 ) -> dict:
 	config = _resource(resource)
 	doctype = config["doctype"]
-	start, page_length = paging(start, page_length)
+	start, page_length = paging(start, page_length, MAX_PAGE_LENGTH)
 
 	tab_def = next((t for t in config.get("tabs", ()) if t["key"] == tab), None)
-	filters = dict(tab_def["filters"]) if tab_def else {}
+	tab_filters = tab_def["filters"] if tab_def else {}
+	filters = [
+		[doctype, field, *(value if isinstance(value, list) else ["=", value])]
+		for field, value in tab_filters.items()
+	] + list_filters(doctype, filters)
 	or_filters = None
 	if pattern := like(txt):
 		or_filters = {field: ["like", pattern] for field in config["search_fields"]}
@@ -133,9 +144,10 @@ def get_list(
 		filters=filters,
 		or_filters=or_filters,
 		fields=_list_fieldnames(config),
-		order_by=config.get("order_by", "modified desc"),
+		order_by=sort_clause(doctype, order_by, config.get("order_by", "modified desc")),
 		limit_start=start,
 		limit_page_length=page_length,
+		distinct=True,
 	)
 	return {"rows": rows, "total": count(doctype, filters, or_filters), "start": start}
 
@@ -160,6 +172,27 @@ def get(resource: str, name: str) -> dict:
 	doc = frappe.get_doc(config["doctype"], name)
 	doc.check_permission("read")
 	return {"doc": _form_values(config, doc), "permissions": get_doctype_permissions(config["doctype"])}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_copy(resource: str, name: str) -> dict:
+	"""Form values for a new record copied from `name` (Duplicate). Fields that identify a record
+	(its name, the naming field, unique fields) are left empty to be filled in."""
+	config = _resource(resource)
+	doctype = config["doctype"]
+	doc = duplicate_doc(doctype, name)
+	meta = frappe.get_meta(doctype)
+	autoname = (meta.autoname or "").lower()
+	identity = {"__newname", "name"}
+	if autoname.startswith("field:"):
+		identity.add(autoname[len("field:") :])
+	identity |= {df.fieldname for df in meta.fields if df.unique}
+
+	values = {}
+	for field in _writable_fields(config).values():
+		fieldname = field["fieldname"]
+		values[fieldname] = None if fieldname in identity else doc.get(fieldname)
+	return {"values": values, "source": name}
 
 
 @frappe.whitelist(methods=["POST"])

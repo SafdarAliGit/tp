@@ -14,6 +14,7 @@ def get_context(context):
 		context,
 		"contracts",
 		contract=context.contract_name,
+		duplicate=frappe.form_dict.get("duplicate") if is_new else None,
 		yarn_request=bool(
 			get_form_route("Material Request") and frappe.has_permission("Material Request", "create")
 		),

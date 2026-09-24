@@ -1,5 +1,6 @@
 /**
- * Material Request list: status tabs, search, purpose / customer / contract / date filters.
+ * Material Request list: status tabs, search, purpose / customer / contract / date filters,
+ * plus the shared List / Report view options (components/list-options.js).
  */
 import { api } from "@tp/core/api.js";
 import { $, html, icon, raw, boot, debounce } from "@tp/core/dom.js";
@@ -8,15 +9,18 @@ import { showError } from "@tp/core/toast.js";
 import { DataTable } from "@tp/components/data-table.js";
 import { LinkField } from "@tp/components/link-field.js";
 import { statusTone } from "@tp/lib/status.js";
+import { ListOptions } from "@tp/components/list-options.js";
 
 const BASE = "/stock/material-requests";
+const DOCTYPE = "Material Request";
+// `status` filters mirror STATUS_TABS in tp/api/material_requests.py
 const TABS = [
 	{ key: "", label: "All" },
-	{ key: "draft", label: "Draft" },
-	{ key: "pending", label: "Pending" },
-	{ key: "completed", label: "Completed" },
-	{ key: "stopped", label: "Stopped" },
-	{ key: "cancelled", label: "Cancelled" },
+	{ key: "draft", label: "Draft", status: ["=", "Draft"] },
+	{ key: "pending", label: "Pending", status: ["in", ["Pending", "Partially Ordered", "Partially Received"]] },
+	{ key: "completed", label: "Completed", status: ["in", ["Ordered", "Received", "Transferred", "Issued"]] },
+	{ key: "stopped", label: "Stopped", status: ["=", "Stopped"] },
+	{ key: "cancelled", label: "Cancelled", status: ["=", "Cancelled"] },
 ];
 
 export async function mountMaterialRequestList() {
@@ -31,7 +35,6 @@ export async function mountMaterialRequestList() {
 		from_date: params.get("from") || "",
 		to_date: params.get("to") || "",
 		start: 0,
-		sort: { field: "modified", dir: "desc" },
 	};
 
 	$("[data-slot='new']").hidden = !perms.create;
@@ -61,6 +64,7 @@ export async function mountMaterialRequestList() {
 			doctype,
 			value: state[key],
 			placeholder,
+			allowCreate: false,
 			onChange: (value) => {
 				state[key] = value;
 				reload();
@@ -95,11 +99,6 @@ export async function mountMaterialRequestList() {
 			{ key: "bags", label: "Bags", type: "number" },
 			{ key: "status", label: "Status", render: (v) => html`<span class="pill ${statusTone(v)}">${v}</span>` },
 		],
-		sort: state.sort,
-		onSort: (sort) => {
-			state.sort = sort;
-			reload();
-		},
 		onRowClick: (row) => (window.location.href = `${BASE}/${encodeURIComponent(row.name)}`),
 		onPage: (start) => {
 			state.start = start;
@@ -113,6 +112,30 @@ export async function mountMaterialRequestList() {
 		},
 	});
 
+	const options = new ListOptions({
+		page: "material-requests",
+		table,
+		sort: { field: "modified", dir: "desc" },
+		quickFilters: () => {
+			const status = TABS.find((t) => t.key === state.tab)?.status;
+			return [
+				status && [DOCTYPE, "status", ...status],
+				state.purpose && [DOCTYPE, "material_request_type", "=", state.purpose],
+				state.customer && [DOCTYPE, "customer", "=", state.customer],
+				state.contract && ["Material Request Item", "weaving_contract_terry", "=", state.contract],
+				state.from_date && [DOCTYPE, "transaction_date", ">=", state.from_date],
+				state.to_date && [DOCTYPE, "transaction_date", "<=", state.to_date],
+			].filter(Boolean);
+		},
+		search: () => state.txt,
+		openRecord: (name) => (window.location.href = `${BASE}/${encodeURIComponent(name)}`),
+		onChange: () => reload(),
+		onCount: (total) => showCount(total),
+	});
+	const showCount = (total) => {
+		$("[data-slot='count']").textContent = `${fmt.number(total, 0)} request${total === 1 ? "" : "s"}`;
+	};
+
 	const filtered = () => Boolean(state.txt || state.purpose || state.customer || state.contract || state.from_date || state.to_date);
 	const syncUrl = () => {
 		const q = new URLSearchParams();
@@ -124,9 +147,11 @@ export async function mountMaterialRequestList() {
 
 	let controller;
 	async function load() {
+		syncUrl();
+		await options.ready;
+		if (options.isReport) return options.load();
 		controller?.abort();
 		controller = new AbortController();
-		syncUrl();
 		table.loading();
 		try {
 			const result = await api.get(
@@ -140,13 +165,12 @@ export async function mountMaterialRequestList() {
 					from_date: state.from_date,
 					to_date: state.to_date,
 					start: state.start,
-					page_length: 20,
-					order_by: `${state.sort.field} ${state.sort.dir}`,
+					...options.listArgs(),
 				},
 				{ signal: controller.signal }
 			);
 			table.update(result);
-			$("[data-slot='count']").textContent = `${fmt.number(result.total, 0)} request${result.total === 1 ? "" : "s"}`;
+			showCount(result.total);
 		} catch (err) {
 			if (err.name !== "AbortError") showError(err, "Couldn't load material requests");
 		}

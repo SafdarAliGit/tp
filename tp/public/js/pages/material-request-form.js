@@ -9,6 +9,7 @@ import { confirm } from "@tp/core/overlay.js";
 import { toast, showError } from "@tp/core/toast.js";
 import { Form } from "@tp/components/form.js";
 import { EditableGrid } from "@tp/components/grid.js";
+import { collapsibleSections } from "@tp/components/sections.js";
 import { statusTone } from "@tp/lib/status.js";
 
 const BASE = "/stock/material-requests";
@@ -52,7 +53,7 @@ const section = (id, iconName, title, sub) => html`
 	</section>`;
 
 export async function mountMaterialRequestForm() {
-	const { request: name, contract, amend } = boot();
+	const { request: name, contract, amend, duplicate: copyOf } = boot();
 	const root = $("[data-slot='request']");
 	const formNode = $("[data-slot='form']", root);
 	const actionsNode = $("[data-slot='actions']", root);
@@ -62,7 +63,7 @@ export async function mountMaterialRequestForm() {
 	try {
 		[meta, loaded] = await Promise.all([
 			api.get("tp.api.material_requests.get_meta"),
-			name ? api.get("tp.api.material_requests.get", { name }) : api.get("tp.api.material_requests.new", { contract, amend }),
+			name ? api.get("tp.api.material_requests.get", { name }) : api.get("tp.api.material_requests.new", { contract, amend, duplicate: copyOf }),
 		]);
 	} catch (err) {
 		showError(err, "Couldn't open material request");
@@ -73,7 +74,7 @@ export async function mountMaterialRequestForm() {
 		return;
 	}
 
-	const state = { doc: loaded.doc, perms: loaded.permissions || meta.permissions, dirty: false, busy: false, source: contract || amend || null };
+	const state = { doc: loaded.doc, perms: loaded.permissions || meta.permissions, dirty: false, busy: false, source: contract || amend || copyOf || null };
 	state.doc.items ||= [];
 	const isNew = () => !state.doc.name;
 	const readOnly = () => state.doc.docstatus !== 0 || (isNew() ? !state.perms.create : !state.perms.write);
@@ -87,6 +88,7 @@ export async function mountMaterialRequestForm() {
 		${section("items", "package", "Items", "What is requested, how much and where it goes")}`
 	);
 	const body = (id) => $(`#${id} [data-body]`, formNode);
+	collapsibleSections(formNode, "material-request");
 
 	let details, transport, items;
 
@@ -135,6 +137,8 @@ export async function mountMaterialRequestForm() {
 		});
 
 		items = new EditableGrid(body("items"), {
+			doctype: DOCTYPE,
+			fieldname: "items",
 			rows: d.items,
 			readOnly: ro,
 			addLabel: "Add item",
@@ -241,6 +245,7 @@ export async function mountMaterialRequestForm() {
 		const printUrl = `/printview?doctype=${encodeURIComponent(DOCTYPE)}&name=${encodeURIComponent(d.name)}&trigger_print=1`;
 		const print = !isNew() && p.print ? html`<a class="btn btn--secondary" href="${printUrl}" target="_blank" rel="noopener">${icon("printer")}<span class="hide-sm">Print</span></a>` : "";
 		const del = !isNew() && d.docstatus !== 1 && p.delete ? button("delete", "Delete", "trash", "btn--ghost btn--danger") : "";
+		const dup = !isNew() && p.create ? button("duplicate", "Duplicate", "copy") : "";
 		let main = "";
 
 		if (d.docstatus === 0) {
@@ -262,7 +267,7 @@ export async function mountMaterialRequestForm() {
 			main = button("amend", "Amend", "copy", "btn--primary");
 		}
 
-		setHTML(actionsNode, html`${del}${print}${main}`);
+		setHTML(actionsNode, html`${del}${dup}${print}${main}`);
 		actionsNode.classList.toggle("is-busy", state.busy);
 		actionsNode.querySelectorAll("button").forEach((b) => (b.disabled = state.busy));
 	}
@@ -270,7 +275,9 @@ export async function mountMaterialRequestForm() {
 	function renderNotice() {
 		const d = state.doc;
 		let notice = "";
-		if (isNew() && contract && !d.items.length) {
+		if (isNew() && copyOf) {
+			notice = html`<div class="alert alert--info">${icon("copy")}<div><strong>Copy of <a class="link" href="${BASE}/${encodeURIComponent(copyOf)}">${copyOf}</a>.</strong> A new draft with the same details and items. Check the dates and quantities, then save.</div></div>`;
+		} else if (isNew() && contract && !d.items.length) {
 			notice = html`<div class="alert">${icon("alert")}<div><strong><a class="link" href="/contracts/${encodeURIComponent(contract)}">${contract}</a> has no yarn yet.</strong> Add items below, or fill the contract's Yarn Details (Article and quantities) and create the Yarn Request again.</div></div>`;
 		} else if (isNew() && contract) {
 			notice = html`<div class="alert alert--info">${icon("info")}<div><strong>Yarn Request from <a class="link" href="/contracts/${encodeURIComponent(contract)}">${contract}</a>.</strong> Yarn Qty (Lbs) and Bags are combined per article and type. Check the quantities, add transport details and save.</div></div>`;
@@ -424,6 +431,10 @@ export async function mountMaterialRequestForm() {
 			}, "Couldn't stop request"),
 		reopen: () => run(async () => apply(await api.post("tp.api.material_requests.set_status", { name: state.doc.name, status: "Submitted" }), "Request re-opened"), "Couldn't re-open request"),
 		amend: () => (window.location.href = `${BASE}/new?amend=${encodeURIComponent(state.doc.name)}`),
+		duplicate: () => {
+			if (state.dirty) return toast.error("Save the request first", { text: "Duplicate copies the saved request." });
+			window.location.href = `${BASE}/new?duplicate=${encodeURIComponent(state.doc.name)}`;
+		},
 		delete: () =>
 			run(async () => {
 				const ok = await confirm({ title: "Delete this request?", text: `${state.doc.name} and all its items will be permanently deleted.`, confirmLabel: "Delete request", danger: true });

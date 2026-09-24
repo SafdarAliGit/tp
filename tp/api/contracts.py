@@ -6,7 +6,9 @@ from frappe import _
 from frappe.utils import flt, getdate
 
 from tp.access import get_doctype_permissions, get_form_route
-from tp.api.utils import count, like, page_api, paging, parse_json
+from tp.api.grid import editable_child_fields
+from tp.api.listview import MAX_PAGE_LENGTH, list_filters, sort_clause
+from tp.api.utils import count, duplicate_doc, like, page_api, paging, parse_json
 
 DOCTYPE = "Weaving Contract Terry"
 CHILD_TABLES = ("product_detail", "yarn_details")
@@ -49,9 +51,10 @@ def get_list(
 	start: int = 0,
 	page_length: int = 20,
 	order_by: str | None = None,
+	filters=None,
 ) -> dict:
-	start, page_length = paging(start, page_length)
-	filters = []
+	start, page_length = paging(start, page_length, MAX_PAGE_LENGTH)
+	filters = list_filters(DOCTYPE, filters)
 	if buyer:
 		filters.append(["buyers_name", "=", buyer])
 	if from_date:
@@ -64,19 +67,15 @@ def get_list(
 		or_filters = [["name", "like", pattern], ["po_no", "like", pattern], ["ct_no", "like", pattern]]
 		or_filters.append(["buyers_name", "like", pattern])
 
-	sortable = {"modified", "po_start_date", "total_amount", "total_item_qty", "name"}
-	field, _sep, direction = (order_by or "modified desc").partition(" ")
-	if field not in sortable or direction not in ("asc", "desc"):
-		field, direction = "modified", "desc"
-
 	rows = frappe.get_list(
 		DOCTYPE,
 		filters=filters,
 		or_filters=or_filters,
 		fields=list(LIST_FIELDS),
-		order_by=f"{field} {direction}",
+		order_by=sort_clause(DOCTYPE, order_by, "modified desc"),
 		limit_start=start,
 		limit_page_length=page_length,
+		distinct=True,
 	)
 	buyers = {row.buyers_name for row in rows if row.buyers_name}
 	titles = (
@@ -102,6 +101,14 @@ def get(name: str) -> dict:
 	doc = frappe.get_doc(DOCTYPE, name)
 	doc.check_permission("read")
 	return {"doc": _serialize(doc), "permissions": get_doctype_permissions(DOCTYPE)}
+
+
+@page_api("contracts")
+def get_copy(name: str) -> dict:
+	"""An unsaved copy of a contract (Duplicate), with its product and yarn rows."""
+	data = _serialize(duplicate_doc(DOCTYPE, name))
+	data.update(name=None, modified=None)
+	return {"doc": data}
 
 
 @page_api("contracts")
@@ -141,7 +148,7 @@ def save(doc) -> dict:
 		if table not in data:
 			continue
 		child_doctype = contract.meta.get_field(table).options
-		allowed = _editable_fields(child_doctype)
+		allowed = editable_child_fields(child_doctype)
 		rows = []
 		for row in data[table] or []:
 			clean = {k: v for k, v in row.items() if k in allowed}
@@ -210,7 +217,8 @@ def get_connections(name: str, limit: int = 50) -> dict:
 
 		meta = frappe.get_meta(doctype)
 		date_field = next(
-			(f for f in ("transaction_date", "posting_date", "schedule_date") if meta.has_field(f)), "creation"
+			(f for f in ("transaction_date", "posting_date", "schedule_date") if meta.has_field(f)),
+			"creation",
 		)
 		fields = ["name", "docstatus", "modified", f"{date_field} as date"]
 		fields += [f for f in ("status", "title") if meta.has_field(f)]

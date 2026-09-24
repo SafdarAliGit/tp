@@ -98,6 +98,28 @@ def get_form_route(doctype: str, user: str | None = None) -> str | None:
 	return None
 
 
+def get_link_routes(user: str | None = None) -> dict[str, str]:
+	"""DocType → portal URL template ("…{name}…") for opening a linked record from a Link field:
+	the DocType's portal form, else its master-data page with the record's drawer open."""
+	from tp.config.resources import RESOURCES
+
+	resource_pages = {r["page"] for r in RESOURCES.values()}
+	routes = {}
+	for page in sorted(PAGES, key=lambda p: not p.get("form_route")):
+		doctype = page.get("reference_doctype")
+		if not doctype or doctype in routes:
+			continue
+		if page.get("form_route"):
+			route = page["form_route"]
+		elif page["page"] in resource_pages:
+			route = f"{page['route']}?open={{name}}"
+		else:
+			continue
+		if has_page_access(page["page"], user):
+			routes[doctype] = route
+	return routes
+
+
 def get_doctype_permissions(doctype: str | None) -> dict[str, bool]:
 	if not doctype:
 		return {ptype: False for ptype in PTYPES}

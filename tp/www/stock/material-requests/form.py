@@ -15,6 +15,7 @@ def get_context(context):
 		request=context.request_name,
 		contract=frappe.form_dict.get("contract") if is_new else None,
 		amend=frappe.form_dict.get("amend") if is_new else None,
+		duplicate=frappe.form_dict.get("duplicate") if is_new else None,
 	)
 	context.title = "New Material Request" if is_new else name
 	return context
