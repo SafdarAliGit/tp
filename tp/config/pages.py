@@ -1,5 +1,8 @@
 """Portal page registry.
 
+`form_route` marks pages that open single documents in the portal; links to those documents
+(e.g. a contract's Connections) use it instead of the desk.
+
 Every portal page is declared here once. `tp.setup.install.sync_pages` creates a matching
 **Page Access** record on install/migrate (existing records are never overwritten), and
 administrators then adjust roles, order and visibility from the desk.
@@ -23,10 +26,21 @@ PAGES = (
 		"page": "contracts",
 		"title": "Weaving Contracts",
 		"route": "/contracts",
+		"form_route": "/contracts/{name}",
 		"icon": "file-text",
 		"section": "Production",
 		"sequence": 20,
 		"reference_doctype": "Weaving Contract Terry",
+	},
+	{
+		"page": "material-requests",
+		"title": "Material Requests",
+		"route": "/stock/material-requests",
+		"form_route": "/stock/material-requests/{name}",
+		"icon": "clipboard-list",
+		"section": "Stock",
+		"sequence": 25,
+		"reference_doctype": "Material Request",
 	},
 	{
 		"page": "items",
@@ -76,4 +90,4 @@ PAGES = (
 	},
 )
 
-SECTION_ORDER = ("Overview", "Production", "Accounting", "Masters")
+SECTION_ORDER = ("Overview", "Production", "Stock", "Accounting", "Masters")

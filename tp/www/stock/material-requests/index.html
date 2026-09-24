@@ -1,0 +1,49 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block content %}
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1 class="page-title">Material Requests</h1>
+			<p class="page-sub" data-slot="count">&nbsp;</p>
+		</div>
+		<div class="page-actions">
+			<button class="btn btn--secondary" type="button" data-action="refresh" aria-label="Refresh">{{ icon("refresh") }}</button>
+			<a class="btn btn--primary" href="/stock/material-requests/new" data-slot="new" hidden>{{ icon("plus") }} New Request</a>
+		</div>
+	</header>
+
+	<div class="card card--flush">
+		<div class="toolbar">
+			<div class="tabs" role="tablist" data-slot="tabs"></div>
+			<label class="search-field">
+				{{ icon("search") }}
+				<input type="search" placeholder="Search request, title or customer…" data-slot="search" aria-label="Search material requests">
+			</label>
+		</div>
+		<div class="toolbar toolbar--sub">
+			<div class="toolbar__filters">
+				<select class="select select--sm" data-slot="purpose" aria-label="Filter by purpose"><option value="">All purposes</option></select>
+				<div class="field field--inline" data-slot="customer"></div>
+				<div class="field field--inline" data-slot="contract"></div>
+				<label class="date-range">
+					{{ icon("calendar") }}
+					<input type="date" class="input input--bare" data-slot="from" aria-label="Date from">
+					<span class="date-range__sep">–</span>
+					<input type="date" class="input input--bare" data-slot="to" aria-label="Date to">
+				</label>
+				<button class="btn btn--ghost btn--sm" type="button" data-action="clear-filters" hidden>{{ icon("x") }} Clear</button>
+			</div>
+		</div>
+		<div data-slot="table"></div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountMaterialRequestList } from "@tp/pages/material-requests.js";
+	mountMaterialRequestList();
+</script>
+{% endblock %}

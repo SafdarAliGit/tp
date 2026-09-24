@@ -1,0 +1,39 @@
+{% extends "tp/templates/tp/shell.html" %}
+{% from "tp/templates/tp/macros.html" import icon %}
+
+{% block breadcrumbs %}
+<a class="crumb" href="/stock/material-requests">Material Requests</a>
+{{ icon("chevron-right", "crumb__sep") }}
+<span class="crumb crumb--current">{{ title | e }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page page--form" data-slot="request">
+	<header class="page-header page-header--sticky">
+		<div class="page-header__title">
+			<a class="icon-btn" href="/stock/material-requests" aria-label="Back to material requests">{{ icon("arrow-left") }}</a>
+			<div>
+				<h1 class="page-title" data-slot="title">{{ title | e }}</h1>
+				<p class="page-sub" data-slot="subtitle">&nbsp;</p>
+			</div>
+			<span class="pill" data-slot="status" hidden></span>
+		</div>
+		<div class="page-actions" data-slot="actions"></div>
+	</header>
+
+	<div class="form-layout">
+		<div class="form-main" data-slot="form">
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+			<div class="card"><div class="skeleton skeleton--block"></div></div>
+		</div>
+		<aside class="form-aside" data-slot="summary"></aside>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+	import { mountMaterialRequestForm } from "@tp/pages/material-request-form.js";
+	mountMaterialRequestForm();
+</script>
+{% endblock %}

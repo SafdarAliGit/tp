@@ -197,6 +197,14 @@
 	background: var(--primary-soft);
 	color: var(--primary-soft-text);
 }
+.card__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+.card__actions:empty {
+	display: none;
+}
 .card__sub {
 	margin-top: 2px;
 	color: var(--text-muted);
@@ -582,6 +590,14 @@
 	gap: var(--sp-3);
 	padding: var(--sp-3) var(--sp-4);
 	border-bottom: 1px solid var(--border);
+}
+.toolbar--sub {
+	justify-content: flex-start;
+	background: var(--surface-2);
+}
+.select--sm {
+	width: auto;
+	min-width: 170px;
 }
 .toolbar__filters {
 	display: flex;
@@ -1341,10 +1357,11 @@
 }
 
 /* ---------- Toasts ---------- */
+/* Bottom-right; newest message at the bottom */
 .toasts {
 	position: fixed;
 	right: var(--sp-5);
-	top: calc(var(--topbar-h) + var(--sp-3));
+	bottom: var(--sp-5);
 	z-index: 100;
 	display: flex;
 	flex-direction: column;
@@ -1450,7 +1467,7 @@
 @keyframes toast-in {
 	from {
 		opacity: 0;
-		transform: translateY(-12px) scale(0.97);
+		transform: translateY(12px) scale(0.97);
 	}
 }
 
@@ -1487,7 +1504,7 @@
 	.toasts {
 		left: var(--sp-4);
 		right: var(--sp-4);
-		top: var(--sp-3);
+		bottom: var(--sp-3);
 		width: auto;
 	}
 }

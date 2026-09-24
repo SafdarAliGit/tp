@@ -273,4 +273,5 @@ website_redirects = [
 
 website_route_rules = [
 	{"from_route": "/contracts/<path:name>", "to_route": "contracts/form"},
+	{"from_route": "/stock/material-requests/<path:name>", "to_route": "stock/material-requests/form"},
 ]

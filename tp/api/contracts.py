@@ -3,9 +3,9 @@
 
 import frappe
 from frappe import _
-from frappe.utils import getdate
+from frappe.utils import flt, getdate
 
-from tp.access import get_doctype_permissions
+from tp.access import get_doctype_permissions, get_form_route
 from tp.api.utils import count, like, page_api, paging, parse_json
 
 DOCTYPE = "Weaving Contract Terry"
@@ -155,6 +155,88 @@ def save(doc) -> dict:
 	else:
 		contract.insert()
 	return {"doc": _serialize(contract)}
+
+
+def _linking_doctypes() -> dict[str, list[tuple[str | None, str]]]:
+	"""Doctypes that link to a contract, as {parent doctype: [(child doctype or None, link field)]}."""
+	link_filters = {"fieldtype": "Link", "options": DOCTYPE}
+	links = frappe.get_all("DocField", filters=link_filters, fields=["parent as dt", "fieldname"])
+	links += frappe.get_all("Custom Field", filters=link_filters, fields=["dt", "fieldname"])
+
+	result = {}
+	for link in links:
+		if not frappe.get_meta(link.dt).istable:
+			result.setdefault(link.dt, []).append((None, link.fieldname))
+			continue
+		table_filters = {"fieldtype": ["in", ["Table", "Table MultiSelect"]], "options": link.dt}
+		parents = set(frappe.get_all("DocField", filters=table_filters, pluck="parent"))
+		parents |= set(frappe.get_all("Custom Field", filters=table_filters, pluck="dt"))
+		for parent in parents:
+			result.setdefault(parent, []).append((link.dt, link.fieldname))
+	return result
+
+
+@page_api("contracts")
+def get_connections(name: str, limit: int = 50) -> dict:
+	"""Documents linked to a contract, grouped by doctype, with qty and bags from linked rows."""
+	frappe.get_doc(DOCTYPE, name).check_permission("read")
+
+	groups = []
+	for doctype, links in sorted(_linking_doctypes().items()):
+		if not frappe.has_permission(doctype, "read"):
+			continue
+
+		# qty / bags come from the linked child rows, so a document only counts what belongs to this contract
+		totals = {}
+		for child, fieldname in links:
+			if child is None:
+				for parent in frappe.get_all(doctype, filters={fieldname: name}, pluck="name"):
+					totals.setdefault(parent, {})
+				continue
+			child_meta = frappe.get_meta(child)
+			sums = [f for f in ("qty", "bags") if child_meta.has_field(f)]
+			rows = frappe.get_all(
+				child,
+				filters={fieldname: name, "parenttype": doctype},
+				fields=["parent", *({"SUM": f, "as": f} for f in sums)],
+				group_by="parent",
+			)
+			for row in rows:
+				entry = totals.setdefault(row.parent, {})
+				for f in sums:
+					entry[f] = entry.get(f, 0) + flt(row.get(f))
+		if not totals:
+			continue
+
+		meta = frappe.get_meta(doctype)
+		date_field = next(
+			(f for f in ("transaction_date", "posting_date", "schedule_date") if meta.has_field(f)), "creation"
+		)
+		fields = ["name", "docstatus", "modified", f"{date_field} as date"]
+		fields += [f for f in ("status", "title") if meta.has_field(f)]
+		docs = frappe.get_list(
+			doctype,
+			filters={"name": ["in", list(totals)]},
+			fields=fields,
+			order_by="creation desc",
+			limit_page_length=min(max(int(limit), 1), 200),
+		)
+		for doc in docs:
+			doc.update(totals[doc.name])
+			doc.status = doc.get("status") or ("Draft", "Submitted", "Cancelled")[doc.docstatus]
+			doc.date = str(doc.date) if doc.date else None
+			doc.modified = str(doc.modified)
+		if docs:
+			groups.append(
+				{
+					"doctype": doctype,
+					"label": _(doctype),
+					"route": get_form_route(doctype),
+					"total": count(doctype, {"name": ["in", list(totals)]}),
+					"rows": docs,
+				}
+			)
+	return {"groups": groups}
 
 
 @page_api("contracts")

@@ -2,15 +2,18 @@
  * Editable child-table grid.
  *
  *   const grid = new EditableGrid(node, {
- *     columns: [{ fieldname, label, type: "link" | "number" | "select" | "computed" | "text",
- *                 doctype, filters, options, precision, reqd, width }],
+ *     columns: [{ fieldname, label, type: "link" | "number" | "select" | "date" | "computed" | "static" | "text",
+ *                 doctype, filters, options, precision, reqd, width, onSelect }],
  *     rows,                                // array of plain objects (mutated in place)
  *     onChange: (row, fieldname) => {},    // after a cell edit
  *     onRowsChange: () => {},              // after add / remove
  *     totals: { fieldname: () => value },  // footer values
  *     readOnly, addLabel, emptyText, newRow: () => ({})
  *   });
- *   grid.refresh();                        // re-paint computed cells + totals without losing focus
+ *   grid.refresh();                        // re-paint computed / static cells + totals without losing focus
+ *
+ * "computed" cells are read-only numbers, "static" cells read-only text. A link column's
+ * `onSelect(row, value, item)` runs when a value is picked (e.g. to fetch item details).
  */
 import { html, icon, raw, el, esc } from "@tp/core/dom.js";
 import { fixed } from "@tp/core/format.js";
@@ -77,7 +80,7 @@ export class EditableGrid {
 			const value = row[col.fieldname];
 			const label = `${col.label}, row ${index + 1}`;
 
-			if (col.type === "computed" || this.readOnly) {
+			if (col.type === "computed" || col.type === "static" || this.readOnly) {
 				const display = col.type === "number" || col.type === "computed" ? fixed(value, col.precision ?? 2) : value ?? "";
 				td.append(el(html`<input class="input ${col.type === "number" || col.type === "computed" ? "input--num" : ""}" readonly tabindex="-1" value="${display}" aria-label="${label}">`));
 			} else if (col.type === "link") {
@@ -87,7 +90,10 @@ export class EditableGrid {
 					bare: true,
 					placeholder: col.placeholder || "Select",
 					filters: col.filters ? () => col.filters(row) : undefined,
-					onChange: (v) => this.update(row, col.fieldname, v, td),
+					onChange: (v, item) => {
+						col.onSelect?.(row, v, item);
+						this.update(row, col.fieldname, v, td);
+					},
 				});
 				link.input.setAttribute("aria-label", label);
 				this.links.push(link);
@@ -99,6 +105,11 @@ export class EditableGrid {
 				</select>`);
 				select.addEventListener("change", () => this.update(row, col.fieldname, select.value, td));
 				td.append(select);
+			} else if (col.type === "date") {
+				const input = el(html`<input class="input" type="date" aria-label="${label}">`);
+				input.value = value ?? "";
+				input.addEventListener("change", () => this.update(row, col.fieldname, input.value, td));
+				td.append(input);
 			} else {
 				const isNum = col.type === "number";
 				const input = el(html`<input class="input ${isNum ? "input--num" : ""}" type="${isNum ? "number" : "text"}"
@@ -147,9 +158,9 @@ export class EditableGrid {
 			const tr = this.node.querySelector(`tr[data-key="${CSS.escape(row._key)}"]`);
 			if (!tr) continue;
 			for (const col of this.columns) {
-				if (col.type !== "computed") continue;
+				if (col.type !== "computed" && col.type !== "static") continue;
 				const input = tr.querySelector(`td[data-field="${col.fieldname}"] input`);
-				if (input) input.value = fixed(row[col.fieldname], col.precision ?? 2);
+				if (input) input.value = col.type === "computed" ? fixed(row[col.fieldname], col.precision ?? 2) : row[col.fieldname] ?? "";
 			}
 		}
 		for (const [fieldname, getter] of Object.entries(this.totals)) {

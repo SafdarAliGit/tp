@@ -12,7 +12,7 @@ so ERPNext role profiles, User Permissions and permission levels keep working.
 import frappe
 from frappe import _
 
-from tp.config.pages import SECTION_ORDER
+from tp.config.pages import PAGES, SECTION_ORDER
 
 CACHE_KEY = "tp:page_access"
 PTYPES = ("read", "create", "write", "delete", "print", "export")
@@ -88,6 +88,14 @@ def require_page_access(page: str):
 	"""Raise PermissionError unless the current user can open `page`."""
 	if not has_page_access(page):
 		frappe.throw(_("You do not have access to this page."), frappe.PermissionError)
+
+
+def get_form_route(doctype: str, user: str | None = None) -> str | None:
+	"""Portal route template ("/…/{name}") for documents of `doctype`, if the user can open it."""
+	for page in PAGES:
+		if page.get("reference_doctype") == doctype and page.get("form_route") and has_page_access(page["page"], user):
+			return page["form_route"]
+	return None
 
 
 def get_doctype_permissions(doctype: str | None) -> dict[str, bool]:

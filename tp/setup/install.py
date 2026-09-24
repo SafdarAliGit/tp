@@ -37,7 +37,7 @@ def sync_pages():
 		doc = frappe.get_doc(
 			{
 				"doctype": "Page Access",
-				**{k: v for k, v in page.items() if k != "roles"},
+				**{k: v for k, v in page.items() if k not in ("roles", "form_route")},
 				"enabled": 1,
 				"show_in_sidebar": 1,
 				"roles": [{"role": role} for role in roles if frappe.db.exists("Role", role)],

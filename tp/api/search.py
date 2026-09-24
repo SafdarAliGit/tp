@@ -7,10 +7,11 @@ from tp.config.resources import RESOURCES
 
 # DocTypes the portal link fields may search. Results are still filtered by Frappe permissions.
 CONTRACT_LINKS = {"Customer", "Item", "Color"}
+MATERIAL_REQUEST_LINKS = {"Company", "Warehouse", "UOM", "Weaving Contract Terry"}
 
 
 def _searchable_doctypes() -> set[str]:
-	doctypes = set(CONTRACT_LINKS)
+	doctypes = CONTRACT_LINKS | MATERIAL_REQUEST_LINKS
 	for resource in RESOURCES.values():
 		doctypes.add(resource["doctype"])
 		fields = (*resource["form_fields"], *extra_fields(resource))
