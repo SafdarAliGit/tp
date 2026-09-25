@@ -2,19 +2,19 @@
 <svg class="i {{ cls }}" aria-hidden="true"><use href="#i-{{ name }}"/></svg>
 {%- endmacro %}
 
-{% macro logo(size=32) -%}
+{% macro logo(size=32, uid="") -%}
 <svg class="logo-mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 40 40" aria-hidden="true">
 	<defs>
-		<linearGradient id="lg-a" x1="0" y1="0" x2="1" y2="1">
+		<linearGradient id="lg-a{{ uid }}" x1="0" y1="0" x2="1" y2="1">
 			<stop offset="0" stop-color="#6BA6FF"/><stop offset=".55" stop-color="#2F6AC2"/><stop offset="1" stop-color="#3970C2"/>
 		</linearGradient>
-		<linearGradient id="lg-b" x1="0" y1="0" x2="1" y2="0">
+		<linearGradient id="lg-b{{ uid }}" x1="0" y1="0" x2="1" y2="0">
 			<stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/>
 		</linearGradient>
 	</defs>
-	<rect width="40" height="40" rx="11" fill="url(#lg-a)"/>
-	<path d="M9 14.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b)" stroke-width="3.2" stroke-linecap="round"/>
-	<path d="M9 21.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b)" stroke-width="3.2" stroke-linecap="round" opacity=".8"/>
-	<path d="M9 28.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b)" stroke-width="3.2" stroke-linecap="round" opacity=".6"/>
+	<rect width="40" height="40" rx="11" fill="url(#lg-a{{ uid }})"/>
+	<path d="M9 14.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b{{ uid }})" stroke-width="3.2" stroke-linecap="round"/>
+	<path d="M9 21.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b{{ uid }})" stroke-width="3.2" stroke-linecap="round" opacity=".8"/>
+	<path d="M9 28.5c4.5-4 9-4 13.5 0s9 4 13.5 0" fill="none" stroke="url(#lg-b{{ uid }})" stroke-width="3.2" stroke-linecap="round" opacity=".6"/>
 </svg>
 {%- endmacro %}

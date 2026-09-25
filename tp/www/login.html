@@ -8,44 +8,84 @@
 	{% include "tp/templates/tp/icons.html" %}
 
 	<div class="login">
+		<div class="login__backdrop" aria-hidden="true">
+			<div class="login__grid"></div>
+			<svg class="login__weave" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice">
+				<g fill="none" stroke-linecap="round">
+					<path d="M-400 180 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0" stroke="rgba(255,255,255,.16)" stroke-width="26"/>
+					<path d="M-400 290 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0" stroke="rgba(138,176,255,.20)" stroke-width="26"/>
+					<path d="M-400 400 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0" stroke="rgba(255,255,255,.10)" stroke-width="26"/>
+				</g>
+				<g class="login__yarn" fill="none" stroke-linecap="round">
+					<path d="M-400 180 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0"/>
+					<path d="M-400 290 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0"/>
+					<path d="M-400 400 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0 c120-90 240-90 360 0 c120 90 240 90 360 0"/>
+				</g>
+			</svg>
+			<span class="login__orb login__orb--1"></span>
+			<span class="login__orb login__orb--2"></span>
+		</div>
+
 		<section class="login__hero" aria-hidden="true">
-			<div class="ribbons">
-				<span class="ribbon ribbon--1"></span>
-				<span class="ribbon ribbon--2"></span>
-				<span class="ribbon ribbon--3"></span>
-			</div>
 			<div class="login__hero-inner">
 				<div class="brand brand--light">
-					{{ logo(40) }}
+					{{ logo(44) }}
 					<span class="brand__text">
 						<span class="brand__name">{{ app_name | e }}</span>
 						<span class="brand__sub">Operations Portal</span>
 					</span>
 				</div>
+
 				<div class="login__pitch">
-					<h1>Weave every order<br>with precision.</h1>
-					<p>Contracts, articles, yarn and buyers in one place, with live calculations and role-based access.</p>
+					<span class="login__eyebrow">{{ icon("layers", "i--sm") }} Textile operations, simplified</span>
+					<h1>Weave every order<br><span>with precision.</span></h1>
+					<p>Contracts, articles, yarn and buyers in one workspace, with live calculations and role-based access.</p>
 				</div>
-				<ul class="login__points">
-					<li>{{ icon("check-circle") }} Live greige, weight and yarn calculations</li>
-					<li>{{ icon("shield") }} Access controlled by your ERPNext roles</li>
-					<li>{{ icon("activity") }} Production dashboard at a glance</li>
+
+				<div class="loom" aria-hidden="true">
+					<div class="loom__cloth">
+						{%- for i in range(8) %}
+						<span class="loom__pick{% if i in (3, 4) %} loom__pick--band{% endif %}"></span>
+						{%- endfor %}
+					</div>
+					<span class="loom__shuttle"></span>
+				</div>
+
+				<ul class="login__features">
+					<li class="login__feature">
+						<span class="login__feature-icon login__feature-icon--sky">{{ icon("scale") }}</span>
+						<span><strong>Live calculations</strong><small>Greige, weight and yarn worked out as you type.</small></span>
+					</li>
+					<li class="login__feature">
+						<span class="login__feature-icon login__feature-icon--green">{{ icon("shield") }}</span>
+						<span><strong>Role-based access</strong><small>Permissions follow your ERPNext roles.</small></span>
+					</li>
+					<li class="login__feature">
+						<span class="login__feature-icon login__feature-icon--gold">{{ icon("activity") }}</span>
+						<span><strong>Production at a glance</strong><small>One dashboard for orders, stock and ledgers.</small></span>
+					</li>
 				</ul>
 			</div>
 		</section>
 
 		<section class="login__panel">
-			<button class="icon-btn login__theme" type="button" data-action="theme" aria-label="Toggle theme">
+			<button class="login__theme" type="button" data-action="theme" aria-label="Toggle theme">
 				{{ icon("sun", "theme-icon--light") }}{{ icon("moon", "theme-icon--dark") }}
 			</button>
 
 			<div class="login__card">
-				<div class="login__mobile-brand">{{ logo(40) }}</div>
+				<div class="login__card-brand">
+					{{ logo(40, "-card") }}
+					<span class="brand__text">
+						<span class="brand__name">{{ app_name | e }}</span>
+						<span class="brand__sub">Operations Portal</span>
+					</span>
+				</div>
 
 				<form class="login__form" id="login-form" novalidate data-view="login">
 					<header class="login__header">
 						<h2>Welcome back</h2>
-						<p>Sign in to continue to {{ app_name | e }}.</p>
+						<p>Sign in to your account to continue.</p>
 					</header>
 
 					{% if disable_user_pass_login %}
@@ -70,22 +110,26 @@
 						</span>
 						<span class="input-wrap">
 							{{ icon("lock") }}
-							<input class="input" name="pwd" type="password" autocomplete="current-password" required placeholder="••••••••">
+							<input class="input" name="pwd" type="password" autocomplete="current-password" required placeholder="Enter your password">
 							<button type="button" class="input-wrap__btn" data-action="toggle-password" aria-label="Show password">
 								{{ icon("eye") }}
 							</button>
 						</span>
+						<span class="login__caps" data-slot="caps" hidden>{{ icon("alert", "i--sm") }} Caps Lock is on</span>
 					</label>
 
-					<button class="btn btn--primary btn--lg btn--block" type="submit">
+					<button class="btn btn--primary btn--lg btn--block login__submit" type="submit">
 						<span class="btn__label">Sign in</span>{{ icon("arrow-right") }}
 					</button>
+
+					<p class="login__secure">{{ icon("shield", "i--sm") }} Secure sign-in · access follows your assigned roles</p>
 				</form>
 
 				<form class="login__form" id="forgot-form" novalidate data-view="forgot" hidden>
 					<header class="login__header">
-						<h2>Reset password</h2>
-						<p>Enter your email and we'll send you a reset link.</p>
+						<span class="login__badge">{{ icon("lock") }}</span>
+						<h2>Reset your password</h2>
+						<p>Enter the email you sign in with and we'll send you a reset link.</p>
 					</header>
 					<div class="alert" data-slot="message" role="status" hidden></div>
 					<label class="field">
@@ -95,12 +139,18 @@
 							<input class="input" name="user" type="email" autocomplete="email" required placeholder="you@company.com">
 						</span>
 					</label>
-					<button class="btn btn--primary btn--lg btn--block" type="submit"><span class="btn__label">Send reset link</span></button>
+					<button class="btn btn--primary btn--lg btn--block login__submit" type="submit">
+						<span class="btn__label">Send reset link</span>{{ icon("send") }}
+					</button>
 					<button class="btn btn--ghost btn--block" type="button" data-action="show-login">{{ icon("arrow-left") }} Back to sign in</button>
 				</form>
 			</div>
 
-			<footer class="login__footer">© {{ frappe.utils.nowdate()[:4] }} {{ app_name | e }}</footer>
+			<footer class="login__footer">
+				<span>© {{ frappe.utils.nowdate()[:4] }} {{ app_name | e }}</span>
+				<span class="login__footer-sep">•</span>
+				<span>Need access? Contact your administrator.</span>
+			</footer>
 		</section>
 	</div>
 

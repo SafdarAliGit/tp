@@ -1,5 +1,5 @@
 import { api } from "@tp/core/api.js";
-import { $, boot, icon } from "@tp/core/dom.js";
+import { $, boot, debounce, icon } from "@tp/core/dom.js";
 import { bindThemeToggles } from "@tp/core/theme.js";
 
 function setLoading(button, loading) {
@@ -14,6 +14,61 @@ function showAlert(node, message, type = "danger") {
 	node.hidden = false;
 }
 
+/* Weave the loom: the shuttle carries each pick across the warp, alternating direction,
+   then the cloth holds for a moment and unravels before the next run. */
+function animateLoom() {
+	const loom = $(".loom");
+	if (!loom || !loom.animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+	const picks = [...loom.querySelectorAll(".loom__pick")];
+	const shuttle = $(".loom__shuttle", loom);
+	const pickMs = 700;
+	const holdMs = 2200;
+	const fadeMs = 600;
+	const cycle = picks.length * pickMs + holdMs + fadeMs;
+	const at = (ms) => ms / cycle;
+
+	picks.forEach((pick, i) => {
+		const start = at(i * pickMs);
+		const end = at((i + 1) * pickMs);
+		const fade = at(cycle - fadeMs);
+		pick.animate(
+			[
+				{ offset: 0, transform: "scaleX(0)", opacity: 1 },
+				...(start > 0 ? [{ offset: start, transform: "scaleX(0)", opacity: 1 }] : []),
+				{ offset: end, transform: "scaleX(1)", opacity: 1 },
+				{ offset: fade, transform: "scaleX(1)", opacity: 1 },
+				{ offset: 1, transform: "scaleX(1)", opacity: 0 },
+			],
+			{ duration: cycle, iterations: Infinity, delay: 900 },
+		);
+	});
+
+	const cloth = $(".loom__cloth", loom);
+	let shuttleAnim;
+	const runShuttle = () => {
+		const travel = cloth.clientWidth - shuttle.offsetWidth;
+		if (travel <= 0) return;
+		const x0 = cloth.offsetLeft;
+		const frames = [];
+		picks.forEach((pick, i) => {
+			const y = cloth.offsetTop + pick.offsetTop + (pick.offsetHeight - shuttle.offsetHeight) / 2;
+			const [from, to] = i % 2 ? [x0 + travel, x0] : [x0, x0 + travel];
+			frames.push(
+				{ offset: at(i * pickMs), transform: `translate(${from}px, ${y}px)`, opacity: 1 },
+				{ offset: at((i + 1) * pickMs) - 0.001, transform: `translate(${to}px, ${y}px)`, opacity: 1 },
+			);
+		});
+		const last = frames[frames.length - 1];
+		frames.push({ ...last, offset: at(picks.length * pickMs), opacity: 0 }, { ...last, offset: 1, opacity: 0 });
+		const time = picks[0].getAnimations()[0]?.currentTime ?? 0;
+		shuttleAnim?.cancel();
+		shuttleAnim = shuttle.animate(frames, { duration: cycle, iterations: Infinity, delay: 900 });
+		shuttleAnim.currentTime = time;
+	};
+	// Measure once the loom has a size, and again whenever it changes
+	new ResizeObserver(debounce(runShuttle, 100)).observe(cloth);
+}
+
 export function mountLogin() {
 	const { redirect_to: redirectTo = "/" } = boot();
 	const loginForm = $("#login-form");
@@ -21,6 +76,7 @@ export function mountLogin() {
 	const error = $("[data-slot='error']", loginForm);
 
 	bindThemeToggles();
+	animateLoom();
 
 	const showView = (view) => {
 		loginForm.hidden = view !== "login";
@@ -43,6 +99,14 @@ export function mountLogin() {
 			btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
 		}
 	});
+
+	const caps = $("[data-slot='caps']", loginForm);
+	const updateCaps = (e) => {
+		if (e.getModifierState) caps.hidden = !e.getModifierState("CapsLock");
+	};
+	loginForm.elements.pwd.addEventListener("keydown", updateCaps);
+	loginForm.elements.pwd.addEventListener("keyup", updateCaps);
+	loginForm.elements.pwd.addEventListener("blur", () => (caps.hidden = true));
 
 	loginForm.addEventListener("submit", async (e) => {
 		e.preventDefault();

@@ -113,6 +113,25 @@
 	--chart-bar-hover: var(--blue-600);
 	--chart-grid: #e8ecf3;
 
+	/* Login backdrop: brand hero that fades into the page background */
+	--login-hero:
+		radial-gradient(900px 620px at 90% 115%, rgba(122, 162, 223, 0.35), transparent 60%),
+		radial-gradient(720px 520px at 0% -10%, rgba(255, 255, 255, 0.7), transparent 60%),
+		linear-gradient(155deg, #e6effb 0%, #cfdff5 50%, #b9d0f0 100%);
+	--login-orb-opacity: 0.3;
+	--login-ink: #112440;
+	--login-ink-2: #1b365e;
+	--login-ink-muted: #2d4a75;
+	--login-ink-accent: linear-gradient(90deg, #2d5591, #3871c2 60%, #4f46e5);
+	--login-eyebrow-icon: var(--primary);
+	--login-glass-bg: rgba(255, 255, 255, 0.6);
+	--login-glass-border: rgba(255, 255, 255, 0.9);
+	--login-grid-line: rgba(45, 85, 145, 0.07);
+	--login-warp: rgba(45, 85, 145, 0.22);
+	--login-weft: #3871c2;
+	--login-weft-band: #c2410c;
+	--login-yarn: rgba(255, 255, 255, 0.85);
+
 	--shadow-xs: 0 1px 2px rgba(17, 36, 64, 0.06);
 	--shadow-sm: 0 1px 3px rgba(17, 36, 64, 0.08), 0 1px 2px rgba(17, 36, 64, 0.04);
 	--shadow: 0 4px 12px -2px rgba(17, 36, 64, 0.1), 0 2px 4px -2px rgba(17, 36, 64, 0.06);
@@ -169,6 +188,23 @@
 		--chart-bar: #7aa2df;
 		--chart-bar-hover: #a6c2ec;
 		--chart-grid: #252b33;
+		--login-hero:
+			radial-gradient(900px 620px at 90% 115%, rgba(56, 113, 194, 0.35), transparent 60%),
+			radial-gradient(720px 520px at 0% -10%, rgba(138, 156, 255, 0.22), transparent 60%),
+			linear-gradient(155deg, #1f3a66 0%, #16294a 50%, #111c30 100%);
+		--login-orb-opacity: 0.18;
+		--login-ink: #ffffff;
+		--login-ink-2: rgba(255, 255, 255, 0.85);
+		--login-ink-muted: rgba(255, 255, 255, 0.75);
+		--login-ink-accent: linear-gradient(90deg, #cfe1ff, #9fc4ff 60%, #b9c3ff);
+		--login-eyebrow-icon: #9fc4ff;
+		--login-glass-bg: rgba(255, 255, 255, 0.07);
+		--login-glass-border: rgba(255, 255, 255, 0.16);
+		--login-grid-line: rgba(255, 255, 255, 0.06);
+		--login-warp: rgba(255, 255, 255, 0.14);
+		--login-weft: #7aa2df;
+		--login-weft-band: #fbbf6a;
+		--login-yarn: rgba(166, 194, 236, 0.45);
 		--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
 		--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
 		--shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.5);
@@ -223,6 +259,23 @@
 	--chart-bar: #7aa2df;
 	--chart-bar-hover: #a6c2ec;
 	--chart-grid: #252b33;
+	--login-hero:
+		radial-gradient(900px 620px at 90% 115%, rgba(56, 113, 194, 0.35), transparent 60%),
+		radial-gradient(720px 520px at 0% -10%, rgba(138, 156, 255, 0.22), transparent 60%),
+		linear-gradient(155deg, #1f3a66 0%, #16294a 50%, #111c30 100%);
+	--login-orb-opacity: 0.18;
+	--login-ink: #ffffff;
+	--login-ink-2: rgba(255, 255, 255, 0.85);
+	--login-ink-muted: rgba(255, 255, 255, 0.75);
+	--login-ink-accent: linear-gradient(90deg, #cfe1ff, #9fc4ff 60%, #b9c3ff);
+	--login-eyebrow-icon: #9fc4ff;
+	--login-glass-bg: rgba(255, 255, 255, 0.07);
+	--login-glass-border: rgba(255, 255, 255, 0.16);
+	--login-grid-line: rgba(255, 255, 255, 0.06);
+	--login-warp: rgba(255, 255, 255, 0.14);
+	--login-weft: #7aa2df;
+	--login-weft-band: #fbbf6a;
+	--login-yarn: rgba(166, 194, 236, 0.45);
 	--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
 	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
 	--shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.5);
